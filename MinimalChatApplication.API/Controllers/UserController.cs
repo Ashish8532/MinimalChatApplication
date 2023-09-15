@@ -1,10 +1,12 @@
 ﻿using Azure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
+using System.Security.Claims;
 
 namespace MinimalChatApplication.API.Controllers
 {
@@ -74,7 +76,6 @@ namespace MinimalChatApplication.API.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception or handle it as needed
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
@@ -142,7 +143,74 @@ namespace MinimalChatApplication.API.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception or handle it as needed
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while processing your request",
+                    Data = null
+                });
+            }
+        }
+
+
+        /// <summary>
+        /// Retrieves a list of users excluding the current user or returns a message indicating no users found.
+        /// </summary>
+        /// <returns>
+        /// An IActionResult containing user information if users are found, or a message indicating no users found.
+        /// </returns>
+        /// <remarks>
+        /// This method is protected by the [Authorize] attribute and can only be accessed by authenticated users.
+        /// It retrieves the unique identifier of the current user and fetches a list of users excluding the current user.
+        /// If users are found, their information is returned; otherwise, a message indicating no users found is returned.
+        /// </remarks>
+        [Authorize]
+        [HttpGet("user")]
+        public async Task<IActionResult> GetAllUser()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if(userId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status401Unauthorized,
+                        Message = "Unauthorized access",
+                        Data = null
+                    });
+                }
+
+                var users = await _userService.GetUsersExceptCurrentUserAsync(userId);
+
+                if (users != null && users.Any())
+                {
+                    var userDtos = users.Select(user => new UserResponseDto
+                    {
+                        UserId = user.Id,
+                        Name = user.Name,
+                        Email = user.Email
+                    }).ToList();
+
+                    return Ok(new ApiResponse<IEnumerable<UserResponseDto>>
+                    {
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = "User list retrieved successfully",
+                        Data = userDtos
+                    });
+                }
+                else
+                {
+                    return Ok(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = "No users found",
+                        Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
