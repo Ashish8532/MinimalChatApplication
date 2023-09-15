@@ -15,5 +15,7 @@ namespace MinimalChatApplication.Data.Context
         {
             
         }
+
+        public DbSet<Message> Messages { get; set; }
     }
 }

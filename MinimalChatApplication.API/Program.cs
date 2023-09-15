@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MinimalChatApplication.Data.Context;
+using MinimalChatApplication.Data.Repository;
 using MinimalChatApplication.Data.Services;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
@@ -54,7 +55,10 @@ builder.Services.AddDbContextPool<ChatApplicationDbContext>(options => options.U
 connectionStrings, b => b.MigrationsAssembly("MinimalChatApplication.Data")));
 
 
-builder.Services.AddTransient<IUserService, UserService>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
+
 
 // Configure Identity
 builder.Services.AddIdentity<ChatApplicationUser, IdentityRole>(options =>
