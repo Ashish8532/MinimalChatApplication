@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MinimalChatApplication.Data.Context;
+using MinimalChatApplication.Data.Services;
+using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,10 +19,19 @@ var connectionStrings = builder.Configuration.GetConnectionString("ChatApplicati
 builder.Services.AddDbContextPool<ChatApplicationDbContext>(options => options.UseSqlServer(
 connectionStrings, b => b.MigrationsAssembly("MinimalChatApplication.Data")));
 
-// Configure Identity User 
-builder.Services.AddIdentity<ChatApplicationUser, IdentityRole>()
-    .AddEntityFrameworkStores<ChatApplicationDbContext>()
-    .AddDefaultTokenProviders();
+
+builder.Services.AddTransient<IUserService, UserService>();
+
+// Configure Identity
+builder.Services.AddIdentity<ChatApplicationUser, IdentityRole>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
+}).AddEntityFrameworkStores<ChatApplicationDbContext>().AddDefaultTokenProviders();
 
 
 var app = builder.Build();
