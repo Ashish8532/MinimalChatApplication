@@ -1,5 +1,6 @@
 ﻿using Azure;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
@@ -11,93 +12,144 @@ namespace MinimalChatApplication.API.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        /// <summary>
-        /// Service for managing user-related operations.
-        /// </summary>
         private readonly IUserService _userService;
+        private readonly IConfiguration _configuration;
 
         /// <summary>
         /// Initializes a new instance of the UserController class.
         /// </summary>
         /// <param name="userService">The service responsible for user-related operations.</param>
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, IConfiguration configuration)
         {
             _userService = userService;
+            _configuration = configuration;
+
         }
 
         /// <summary>
-        /// Registers a new user.
+        /// Registers a new user via a POST request.
         /// </summary>
-        /// <param name="registerDto">The user registration data.</param>
+        /// <param name="registerDto">The registration data provided by the user.</param>
         /// <returns>
-        /// Returns a response indicating the registration status:
-        /// - 200 OK if registration is successful, along with the user information.
-        /// - 400 Bad Request if there are validation errors.
+        /// An IActionResult representing the HTTP response:
+        /// - 200 OK if registration is successful, along with the registration status and user information.
+        /// - 400 Bad Request if there are validation errors in the registration data.
         /// - 409 Conflict if the email is already registered.
+        /// - 500 Internal Server Error if an unexpected error occurs.
         /// </returns>
         [HttpPost("register")]
         public async Task<IActionResult> RegisterUser([FromBody] RegisterDto registerDto)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(new ApiResponse<object>
+                if (!ModelState.IsValid)
                 {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "Registration failed due to validation errors",
-                    Data = null
-                });
-            }
-
-            // Check existing user
-            var userExists = await _userService.GetUserByEmailAsync(registerDto.Email);
-            if (userExists != null)
-            {
-                return Conflict(new ApiResponse<object>
-                {
-                    StatusCode = StatusCodes.Status409Conflict,
-                    Message = "Registration failed because the email is already registered",
-                    Data = null
-                });
-            }
-            ChatApplicationUser user = new ChatApplicationUser()
-            {
-                Email = registerDto.Email,
-                PasswordHash = registerDto.Password,
-                Name = registerDto.Name,
-                UserName = registerDto.Email,
-                SecurityStamp = Guid.NewGuid().ToString(),
-            };
-
-            var result = await _userService.CreateUserAsync(user, registerDto.Password);
-            if (!result.success)
-            {
-                var message = "Registration failed.";
-
-                foreach (var error in result.errors)
-                {
-                    message += $" {error}";
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Message = "Registration failed due to validation errors",
+                        Data = null
+                    });
                 }
-                return BadRequest(new ApiResponse<object>
+                var result = await _userService.RegisterUserAsync(registerDto);
+
+                if (result.success)
                 {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Message = message,
+                    return StatusCode(result.StatusCode, new ApiResponse<object>
+                    {
+                        StatusCode = result.StatusCode,
+                        Message = result.message,
+                        Data = result.userResponseDto
+                    });
+                }
+                else
+                {
+                    return StatusCode(result.StatusCode, new ApiResponse<object>
+                    {
+                        StatusCode = result.StatusCode,
+                        Message = result.message,
+                        Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception or handle it as needed
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while processing your request",
                     Data = null
                 });
-
             }
-            var userResponseDto = new UserResponseDto
-            {
-                UserId = user.Id,
-                Name = user.Name,
-                Email = user.Email,
-            };
+        }
 
-            return Ok(new ApiResponse<object>
+
+        /// <summary>
+        /// Handles user login.
+        /// </summary>
+        /// <param name="model">The login data provided by the user.</param>
+        /// <returns>
+        /// - 200 OK if login is successful, along with a JWT token and user profile details.
+        /// - 400 Bad Request if there are validation errors in the provided data.
+        /// - 401 Unauthorized if login fails due to incorrect credentials.
+        /// - 500 Internal Server Error if an unexpected error occurs.
+        /// </returns>
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDto model)
+        {
+            try
             {
-                StatusCode = StatusCodes.Status200OK,
-                Message = "Registration successful",
-                Data = userResponseDto
-            });
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Message = "Login failed due to validation errors",
+                        Data = null
+                    });
+                }
+
+                var loginResult = await _userService.LoginAsync(model.Email, model.Password);
+
+                if (loginResult.Succeeded)
+                {
+                    var user = await _userService.GetUserByEmailAsync(model.Email);
+                    var jwtToken = _userService.GenerateJwtToken(user);
+
+                    return Ok(new
+                    {
+                        message = loginResult.Message,
+                        jwtToken,
+                        expiration = DateTime.UtcNow.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                        profile = new
+                        {
+                            id = user.Id,
+                            name = user.Name,
+                            email = user.Email
+                        }
+                    });
+                }
+                else
+                {
+                    return StatusCode(loginResult.StatusCode, new ApiResponse<object>
+                    {
+                        StatusCode = loginResult.StatusCode,
+                        Message = loginResult.Message,
+                        Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception or handle it as needed
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while processing your request",
+                    Data = null
+                });
+            }
         }
     }
 }

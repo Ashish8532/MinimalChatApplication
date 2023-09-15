@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Models;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,32 @@ namespace MinimalChatApplication.Domain.Interfaces
 {
     public interface IUserService
     {
+
+        /// <summary>
+        /// Registers a new user asynchronously.
+        /// </summary>
+        /// <param name="registerDto">The registration data provided by the user.</param>
+        /// <returns>
+        /// A tuple containing the registration status, HTTP status code, a message indicating the result, and user information.
+        /// - success (bool): True if registration is successful; otherwise, false.
+        /// - StatusCode (int): The HTTP status code associated with the registration outcome.
+        /// - message (string): A message providing details about the registration outcome.
+        /// - userResponseDto (UserResponseDto): User information including user ID, name, and email (null if registration failed).
+        /// </returns>
+        Task<(bool success, int StatusCode, string message, UserResponseDto userResponseDto)> RegisterUserAsync(RegisterDto registerDto);
+
+        /// <summary>
+        /// Performs user login asynchronously.
+        /// </summary>
+        /// <param name="email">The email address of the user attempting to log in.</param>
+        /// <param name="password">The user's password for authentication.</param>
+        /// <returns>
+        /// A tuple containing the login status and a message indicating the result.
+        /// - Succeeded (bool): True if the login is successful; otherwise, false.
+        /// - Message (string): A message providing details about the login outcome.
+        /// </returns>
+        Task<(bool Succeeded, int StatusCode, string Message)> LoginAsync(string email, string password);
+
         /// <summary>
         /// Retrieves a user asynchronously by their email address.
         /// </summary>
@@ -21,14 +48,10 @@ namespace MinimalChatApplication.Domain.Interfaces
         Task<ChatApplicationUser> GetUserByEmailAsync(string email);
 
         /// <summary>
-        /// Creates a new user asynchronously and returns the operation result.
+        /// Generates a JWT (JSON Web Token) for the provided user.
         /// </summary>
-        /// <param name="user">The user to be created.</param>
-        /// <param name="password">The user's password.</param>
-        /// <returns>
-        /// A task representing the asynchronous operation that, upon completion, returns a tuple indicating
-        /// the success status (true if successful) and a collection of error messages (if any).
-        /// </returns>
-        Task<(bool success, IEnumerable<string> errors)> CreateUserAsync(ChatApplicationUser user, string password);
+        /// <param name="user">The user for whom the token is generated.</param>
+        /// <returns>The JWT token as a string.</returns>
+        string GenerateJwtToken(ChatApplicationUser user);
     }
 }
