@@ -40,6 +40,8 @@ namespace MinimalChatApplication.Data.Services
             _context = context;
         }
 
+        #region User Authentication Operations
+
         /// <summary>
         /// Registers a new user asynchronously.
         /// </summary>
@@ -186,5 +188,7 @@ namespace MinimalChatApplication.Data.Services
             }
             return await _context.Users.Where(u => u.Id != currentUserId).ToListAsync();
         }
+
+        #endregion User Authentication Operations
     }
 }

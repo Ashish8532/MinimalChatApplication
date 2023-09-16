@@ -20,18 +20,25 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// </returns>
         Task<int?> SendMessageAsync(MessageDto messageDto, string senderId);
 
-        ///<summary>
-        /// Get a message by its ID from the repository asynchronously.
+        /// <summary>
+        /// Edits a message with the given ID, updating its content.
         /// </summary>
-        /// <param name="messageId">The ID of the message to retrieve.</param>
-        /// <returns>The message if found, or null if not found.</returns>
-        Task<Message> GetMessageByIdAsync(int messageId);
+        /// <param name="messageId">The ID of the message to edit.</param>
+        /// <param name="userId">The ID of the user attempting to edit the message.</param>
+        /// <param name="newContent">The updated content for the message.</param>
+        /// <returns>
+        /// A tuple containing a success flag, HTTP status code, and a message indicating the result of the operation.
+        /// </returns>
+        Task<(bool success, int StatusCode, string message)> EditMessageAsync(int messageId, string userId,  string newContent);
 
-        ///<summary>
-        /// Edit a message's content and update it in the repository asynchronously.
+        /// <summary>
+        /// Deletes a message with the given ID if it exists and if the user is the sender.
         /// </summary>
-        /// <param name="message">The message to be edited.</param>
-        /// <param name="newContent">The new content for the message.</param>
-        Task EditMessageAsync(Message message, string newContent);
+        /// <param name="messageId">The ID of the message to delete.</param>
+        /// <param name="userId">The ID of the user attempting to delete the message.</param>
+        /// <returns>
+        /// A tuple containing a success flag, HTTP status code, and a message indicating the result of the operation.
+        /// </returns>
+        Task<(bool success, int StatusCode, string message)> DeleteMessageAsync(int messageId, string userId);
     }
 }
