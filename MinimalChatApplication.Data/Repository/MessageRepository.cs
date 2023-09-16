@@ -74,5 +74,38 @@ namespace MinimalChatApplication.Data.Repository
             await _context.SaveChangesAsync();
             return true;
         }
+
+        /// <summary>
+        /// Retrieves the conversation history between the logged-in user and a specific receiver user from the database.
+        /// </summary>
+        /// <param name="loggedInUserId">The ID of the logged-in user.</param>
+        /// <param name="receiverId">The ID of the receiver user.</param>
+        /// <param name="before">Optional timestamp to filter messages before a specific time.</param>
+        /// <param name="count">The number of messages to retrieve.</param>
+        /// <param name="sort">The sorting mechanism for messages (asc or desc).</param>
+        /// <returns>An IEnumerable of Message objects representing the conversation history.</returns>
+        public async Task<IEnumerable<Message>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
+        {
+            var query = _context.Messages
+                .Where(m => (m.SenderId == loggedInUserId && m.ReceiverId == receiverId));
+
+            if (before.HasValue)
+            {
+                query = query.Where(m => m.Timestamp < before);
+            }
+
+            if (sort.Equals("desc", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.OrderByDescending(m => m.Timestamp);
+            }
+            else
+            {
+                query = query.OrderBy(m => m.Timestamp);
+            }
+
+            query = query.Take(count);
+
+            return await query.ToListAsync();
+        }
     }
 }
