@@ -98,5 +98,79 @@ namespace MinimalChatApplication.API.Controllers
                 });
             }
         }
+
+
+        ///<summary>
+        /// Edit a message with the specified ID. Only the sender of the message can edit it.
+        /// </summary>
+        /// <param name="messageId">ID of the message to edit.</param>
+        /// <param name="editMessageDto">DTO containing the updated message content.</param>
+        /// <returns>
+        /// - 200 OK if the message is successfully edited.
+        /// - 400 Bad Request if there are validation errors.
+        /// - 401 Unauthorized if the user is not the sender of the message or unauthorized access.
+        /// - 404 Not Found if the message with the given ID does not exist.
+        /// - 500 Internal Server Error if an error occurs while processing the request.
+        /// </returns>
+        [HttpPut("{messageId}")]
+        public async Task<IActionResult> PutMessage([FromRoute] int messageId, [FromBody] EditMessageDto editMessageDto)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status401Unauthorized,
+                        Message = "Unauthorized access",
+                        Data = null
+                    });
+                }
+
+                // Check if the message with the given ID exists
+                var message = await _messageService.GetMessageByIdAsync(messageId);
+
+                if (message == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status404NotFound,
+                        Message = "Message not found",
+                        Data = null
+                    });
+                }
+
+                // Check if the user is the sender of the message
+                if (message.SenderId != userId)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status401Unauthorized,
+                        Message = "Unauthorized access",
+                        Data = null
+                    });
+                }
+
+                // Update the message content
+                await _messageService.EditMessageAsync(message, editMessageDto.Content);
+
+                return Ok(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Message edited successfully",
+                    Data = null
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while processing your request",
+                    Data = null
+                });
+            }
+        }
     }
 }

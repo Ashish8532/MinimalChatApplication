@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.ActionConstraints;
+using Microsoft.EntityFrameworkCore;
 using MinimalChatApplication.Data.Context;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
@@ -35,6 +36,28 @@ namespace MinimalChatApplication.Data.Repository
             await _context.SaveChangesAsync();
 
             return message.Id;
+        }
+
+
+        ///<summary>
+        /// Get a message by its unique identifier asynchronously.
+        /// </summary>
+        /// <param name="messageId">The unique identifier of the message to retrieve.</param>
+        /// <returns>The message with the specified ID, or null if not found.</returns>
+        public async Task<Message> GetMessageByIdAsync(int messageId)
+        {
+            return await _context.Messages.FirstOrDefaultAsync(x => x.Id == messageId);
+        }
+
+
+        ///<summary>
+        /// Update a message asynchronously in the data source.
+        /// </summary>
+        /// <param name="message">The message to update.</param>
+        public async Task UpdateMessageAsync(Message message)
+        {
+            _context.Messages.Update(message);
+            await _context.SaveChangesAsync();
         }
     }
 }

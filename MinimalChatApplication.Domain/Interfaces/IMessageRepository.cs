@@ -17,5 +17,18 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// The unique identifier of the created message.
         /// </returns>
         Task<int?> CreateMessageAsync(Message message);
+
+        ///<summary>
+        /// Get a message by its unique identifier asynchronously.
+        /// </summary>
+        /// <param name="messageId">The unique identifier of the message to retrieve.</param>
+        /// <returns>The message with the specified ID, or null if not found.</returns>
+        Task<Message> GetMessageByIdAsync(int messageId);
+
+        ///<summary>
+        /// Update a message asynchronously in the data source.
+        /// </summary>
+        /// <param name="message">The message to update.</param>
+        Task UpdateMessageAsync(Message message);
     }
 }

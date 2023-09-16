@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web.Razor.Generator;
 
 namespace MinimalChatApplication.Data.Services
 {
@@ -21,6 +22,8 @@ namespace MinimalChatApplication.Data.Services
         {
             _messageRepository = messageRepository;
         }
+
+       
 
         /// <summary>
         /// Sends a message asynchronously.
@@ -45,6 +48,29 @@ namespace MinimalChatApplication.Data.Services
                 return messageId;
             }
             return null;
+        }
+
+
+        ///<summary>
+        /// Get a message by its ID from the repository asynchronously.
+        /// </summary>
+        /// <param name="messageId">The ID of the message to retrieve.</param>
+        /// <returns>The message if found, or null if not found.</returns>
+        public async Task<Message> GetMessageByIdAsync(int messageId)
+        {
+            return await _messageRepository.GetMessageByIdAsync(messageId);
+        }
+
+
+        ///<summary>
+        /// Edit a message's content and update it in the repository asynchronously.
+        /// </summary>
+        /// <param name="message">The message to be edited.</param>
+        /// <param name="newContent">The new content for the message.</param>
+        public async Task EditMessageAsync(Message message, string newContent)
+        {
+            message.Content = newContent;
+            await _messageRepository.UpdateMessageAsync(message);
         }
     }
 }
