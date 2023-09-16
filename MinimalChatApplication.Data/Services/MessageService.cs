@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
@@ -43,7 +44,7 @@ namespace MinimalChatApplication.Data.Services
                     Content = messageDto.Content,
                     SenderId = senderId,
                     ReceiverId = messageDto.ReceiverId,
-                    Timestamp = DateTime.UtcNow,
+                    Timestamp = DateTime.Now,
                 };
                 var messageId = await _messageRepository.CreateMessageAsync(message);
                 return messageId;
@@ -115,6 +116,33 @@ namespace MinimalChatApplication.Data.Services
                 }
             }
             return (false, StatusCodes.Status404NotFound, "Message not found");
+        }
+
+
+        /// <summary>
+        /// Retrieves the conversation history between the logged-in user and a specific receiver user.
+        /// </summary>
+        /// <param name="loggedInUserId">The ID of the logged-in user.</param>
+        /// <param name="receiverId">The ID of the receiver user.</param>
+        /// <param name="before">Optional timestamp to filter messages before a specific time.</param>
+        /// <param name="count">The number of messages to retrieve.</param>
+        /// <param name="sort">The sorting mechanism for messages (asc or desc).</param>
+        /// <returns>An IEnumerable of MessageResponseDto containing conversation history.</returns>
+        public async Task<IEnumerable<MessageResponseDto>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
+        {
+            var conversationHistory = await _messageRepository
+                .GetConversationHistoryAsync(loggedInUserId, receiverId, before, count, sort);
+
+            var messageResponseDtos = conversationHistory.Select(message => new MessageResponseDto
+            {
+                MessageId = message.Id,
+                SenderId = message.SenderId,
+                ReceiverId = message.ReceiverId,
+                Content = message.Content,
+                Timestamp = message.Timestamp
+            }).ToList();
+
+            return messageResponseDtos;
         }
     }
 }

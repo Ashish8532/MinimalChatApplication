@@ -40,5 +40,16 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// A tuple containing a success flag, HTTP status code, and a message indicating the result of the operation.
         /// </returns>
         Task<(bool success, int StatusCode, string message)> DeleteMessageAsync(int messageId, string userId);
+
+        /// <summary>
+        /// Retrieves the conversation history between the logged-in user and a specific receiver user.
+        /// </summary>
+        /// <param name="loggedInUserId">The ID of the logged-in user.</param>
+        /// <param name="receiverId">The ID of the receiver user.</param>
+        /// <param name="before">Optional timestamp to filter messages before a specific time.</param>
+        /// <param name="count">The number of messages to retrieve.</param>
+        /// <param name="sort">The sorting mechanism for messages (asc or desc).</param>
+        /// <returns>An IEnumerable of MessageResponseDto containing conversation history.</returns>
+        Task<IEnumerable<MessageResponseDto>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort);
     }
 }

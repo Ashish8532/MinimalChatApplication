@@ -70,7 +70,7 @@ namespace MinimalChatApplication.API.Controllers
                         SenderId = senderId,
                         ReceiverId = messageDto.ReceiverId,
                         Content = messageDto.Content,
-                        Timestamp = DateTime.UtcNow
+                        Timestamp = DateTime.Now
                     };
 
                     return Ok(new ApiResponse<MessageResponseDto>
@@ -200,5 +200,82 @@ namespace MinimalChatApplication.API.Controllers
         }
 
         #endregion Message Operations
+
+        #region Retrieve Conversation History
+
+        /// <summary>
+        /// Retrieves the conversation history between the logged-in user and a specific user based on query parameters.
+        /// </summary>
+        /// <param name="userId">The ID of the user to retrieve the conversation with.</param>
+        /// <param name="before">Optional timestamp to filter messages before a specific time.</param>
+        /// <param name="count">The number of messages to retrieve (default is 20).</param>
+        /// <param name="sort">The sorting mechanism for messages (asc or desc) (default is "asc").</param>
+        /// <returns>
+        /// An IActionResult containing a response with conversation history or an error message.
+        /// </returns>
+        [HttpGet]
+        public async Task<IActionResult> RetrieveConversationHistory([FromQuery] Guid userId, [FromQuery] DateTime? before = null,
+            [FromQuery] int count = 20, [FromQuery] string sort = "asc")        
+        {
+            try
+            {
+                // Validate parameters
+                if (userId == Guid.Empty || count <= 0)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Message = "Invalid request parameters",
+                        Data = null
+                    });
+                }
+                var loggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (loggedInUserId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status401Unauthorized,
+                        Message = "Unauthorized access",
+                        Data = null
+                    });
+                }
+                if (!before.HasValue)
+                {
+                    before = DateTime.Now;
+                }
+
+                // Call the service method to retrieve conversation history
+                var conversationHistory = await _messageService.GetConversationHistoryAsync(
+                       loggedInUserId, userId.ToString(), before, count, sort);
+
+                if (conversationHistory == null || !conversationHistory.Any())
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status404NotFound,
+                        Message = "User or conversation not found",
+                        Data = null
+                    });
+                }
+                return Ok(new ApiResponse<IEnumerable<MessageResponseDto>>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Conversation history retrieved successfully",
+                    Data = conversationHistory
+                });
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions and return appropriate error responses
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while processing your request",
+                    Data = null
+                });
+            }
+        }
+
+        #endregion Retrieve Conversation History
     }
 }
