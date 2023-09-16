@@ -25,10 +25,18 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <returns>The message with the specified ID, or null if not found.</returns>
         Task<Message> GetMessageByIdAsync(int messageId);
 
-        ///<summary>
-        /// Update a message asynchronously in the data source.
+        /// <summary>
+        /// Updates a message in the database.
         /// </summary>
-        /// <param name="message">The message to update.</param>
-        Task UpdateMessageAsync(Message message);
+        /// <param name="message">The message to be updated.</param>
+        /// <returns>True if the message was updated successfully; otherwise, false.</returns>
+        Task<bool> UpdateMessageAsync(Message message);
+
+        /// <summary>
+        /// Deletes a message from the database.
+        /// </summary>
+        /// <param name="message">The message to be deleted.</param>
+        /// <returns>True if the message was deleted successfully; otherwise, false.</returns>
+        Task<bool> DeleteMessageAsync(Message message);
     }
 }

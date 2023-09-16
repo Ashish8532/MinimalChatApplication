@@ -50,14 +50,29 @@ namespace MinimalChatApplication.Data.Repository
         }
 
 
-        ///<summary>
-        /// Update a message asynchronously in the data source.
+        /// <summary>
+        /// Updates a message in the database.
         /// </summary>
-        /// <param name="message">The message to update.</param>
-        public async Task UpdateMessageAsync(Message message)
+        /// <param name="message">The message to be updated.</param>
+        /// <returns>True if the message was updated successfully; otherwise, false.</returns>
+        public async Task<bool> UpdateMessageAsync(Message message)
         {
             _context.Messages.Update(message);
             await _context.SaveChangesAsync();
+            return true;
+        }
+
+
+        /// <summary>
+        /// Deletes a message from the database.
+        /// </summary>
+        /// <param name="message">The message to be deleted.</param>
+        /// <returns>True if the message was deleted successfully; otherwise, false.</returns>
+        public async Task<bool> DeleteMessageAsync(Message message)
+        {
+            _context.Messages.Remove(message);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }
