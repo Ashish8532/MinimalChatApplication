@@ -27,9 +27,8 @@ namespace MinimalChatApplication.API.Middleware
         /// Captures request details like IP, request body, and username from the auth token (if present).
         /// </summary>
         /// <param name="httpContext">The HTTP context.</param>
-        /// <param name="_dbcontext">The database context for storing log entries.</param>
+        /// <param name="_logRepository">The repository for storing log entries.</param>
         public async Task Invoke(HttpContext httpContext, 
-            ChatApplicationDbContext _dbcontext, 
             ILogRepository _logRepository)
         {
             var injectedRequestStream = new MemoryStream();
