@@ -95,7 +95,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = "An error occurred while processing your request",
+                    Message = $"An error occurred while processing your request. {ex.Message}",
                     Data = null
                 });
             }
@@ -145,7 +145,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = "An error occurred while processing your request",
+                    Message = $"An error occurred while processing your request. {ex.Message}",
                     Data = null
                 });
             }
@@ -193,7 +193,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = "An error occurred while processing your request",
+                    Message = $"An error occurred while processing your request. {ex.Message}",
                     Data = null
                 });
             }
@@ -270,7 +270,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = "An error occurred while processing your request",
+                    Message = $"An error occurred while processing your request. {ex.Message}",
                     Data = null
                 });
             }

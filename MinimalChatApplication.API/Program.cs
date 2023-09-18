@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MinimalChatApplication.API.Middleware;
 using MinimalChatApplication.Data.Context;
 using MinimalChatApplication.Data.Repository;
 using MinimalChatApplication.Data.Services;
@@ -56,6 +57,7 @@ connectionStrings, b => b.MigrationsAssembly("MinimalChatApplication.Data")));
 
 
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<ILogRepository, LogRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 
@@ -109,6 +111,8 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.MapControllers();
 
