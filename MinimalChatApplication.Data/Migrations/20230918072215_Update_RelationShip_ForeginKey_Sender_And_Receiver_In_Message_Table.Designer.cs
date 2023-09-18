@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MinimalChatApplication.Data.Context;
 
@@ -11,9 +12,11 @@ using MinimalChatApplication.Data.Context;
 namespace MinimalChatApplication.Data.Migrations
 {
     [DbContext(typeof(ChatApplicationDbContext))]
-    partial class ChatApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230918072215_Update_RelationShip_ForeginKey_Sender_And_Receiver_In_Message_Table")]
+    partial class Update_RelationShip_ForeginKey_Sender_And_Receiver_In_Message_Table
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

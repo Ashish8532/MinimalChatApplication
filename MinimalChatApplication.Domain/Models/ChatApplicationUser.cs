@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,5 +11,11 @@ namespace MinimalChatApplication.Domain.Models
     public class ChatApplicationUser: IdentityUser
     {
         public string Name { get; set; }
+
+        // Add a navigation property for messages sent by this user
+        public ICollection<Message> SentMessages { get; set; }
+
+        // Add a navigation property for messages received by this user
+        public ICollection<Message> ReceivedMessages { get; set; }
     }
 }
