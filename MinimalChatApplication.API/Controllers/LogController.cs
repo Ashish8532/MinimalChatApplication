@@ -57,7 +57,7 @@ namespace MinimalChatApplication.API.Controllers
                 // Fetch logs from the repository
                 var logs = await _logRepository.GetLogsAsync(startTime.Value, endTime.Value);
 
-                if (logs.Count == 0)
+                if (logs == null)
                 {
                     return NotFound(new ApiResponse<object>
                     {

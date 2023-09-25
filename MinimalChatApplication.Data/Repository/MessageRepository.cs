@@ -87,11 +87,12 @@ namespace MinimalChatApplication.Data.Repository
         public async Task<IEnumerable<Message>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
         {
             var query = _context.Messages
-                .Where(m => (m.SenderId == loggedInUserId && m.ReceiverId == receiverId));
+                .Where(m => (m.SenderId == loggedInUserId && m.ReceiverId == receiverId) ||
+                (m.SenderId == receiverId && m.ReceiverId == loggedInUserId));
 
             if (before.HasValue)
             {
-                query = query.Where(m => m.Timestamp < before);
+                query = query.Where(m => m.Timestamp <= before);
             }
 
             if (sort.Equals("desc", StringComparison.OrdinalIgnoreCase))

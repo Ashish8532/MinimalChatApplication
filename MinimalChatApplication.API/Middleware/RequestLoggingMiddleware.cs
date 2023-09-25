@@ -123,7 +123,7 @@ namespace MinimalChatApplication.API.Middleware
             }
             catch (Exception ex)
             {
-                return ($"Error validating JWT token: {ex.Message}");
+                return string.Empty;
             }
             return string.Empty; 
         }
