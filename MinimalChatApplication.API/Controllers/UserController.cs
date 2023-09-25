@@ -122,7 +122,7 @@ namespace MinimalChatApplication.API.Controllers
                     {
                         message = loginResult.Message,
                         jwtToken,
-                        expiration = DateTime.UtcNow.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                        expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
                         profile = new
                         {
                             id = user.Id,

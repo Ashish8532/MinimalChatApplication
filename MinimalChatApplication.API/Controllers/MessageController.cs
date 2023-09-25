@@ -253,7 +253,7 @@ namespace MinimalChatApplication.API.Controllers
                     return NotFound(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status404NotFound,
-                        Message = "User or conversation not found",
+                        Message = "Conversation not found",
                         Data = null
                     });
                 }

@@ -158,7 +158,7 @@ namespace MinimalChatApplication.Data.Services
             var jwtToken = new JwtSecurityToken(
                 issuer: _configuration["JWT:ValidIssuer"],
                 audience: _configuration["JWT:ValidAudience"],
-                expires: DateTime.UtcNow.AddMinutes(lifetimeInMinutes),
+                expires: DateTime.Now.AddMinutes(lifetimeInMinutes),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
