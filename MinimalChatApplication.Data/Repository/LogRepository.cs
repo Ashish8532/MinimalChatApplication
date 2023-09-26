@@ -10,24 +10,24 @@ using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Data.Repository
 {
-    public class LogRepository : ILogRepository
+    public class LogRepository : GenericRepository<Log>, ILogRepository
     {
-        private readonly ChatApplicationDbContext _dbContext; // Replace with your data context
+        private readonly ChatApplicationDbContext _dbContext; 
 
-        public LogRepository(ChatApplicationDbContext dbContext)
+        public LogRepository(ChatApplicationDbContext dbContext) : base(dbContext)
         {
             _dbContext = dbContext;
         }
 
-        /// <summary>
-        /// Adds a log entry to the database asynchronously.
-        /// </summary>
-        /// <param name="log">The log entry to be added.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task AddLogAsync(Log logs)
+        ///<summary>
+        /// Asynchronously saves all changes made to the database context.
+        ///</summary>
+        ///<remarks>
+        /// Use this method to persist any pending changes to the underlying database.
+        /// It ensures that changes are committed atomically and provides a way to handle exceptions.
+        ///</remarks>
+        public async Task SaveChangesAsync()
         {
-            // Add the log to the database
-            _dbContext.Logs.Add(logs);
             await _dbContext.SaveChangesAsync();
         }
 

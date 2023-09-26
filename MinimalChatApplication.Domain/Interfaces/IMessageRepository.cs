@@ -7,37 +7,17 @@ using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Domain.Interfaces
 {
-    public interface IMessageRepository
+    public interface IMessageRepository : IGenericRepository<Message>
     {
-        /// <summary>
-        /// Creates a new message asynchronously and stores it in the database.
-        /// </summary>
-        /// <param name="message">The message to be created and stored.</param>
-        /// <returns>
-        /// The unique identifier of the created message.
-        /// </returns>
-        Task<int?> CreateMessageAsync(Message message);
 
         ///<summary>
-        /// Get a message by its unique identifier asynchronously.
-        /// </summary>
-        /// <param name="messageId">The unique identifier of the message to retrieve.</param>
-        /// <returns>The message with the specified ID, or null if not found.</returns>
-        Task<Message> GetMessageByIdAsync(int messageId);
-
-        /// <summary>
-        /// Updates a message in the database.
-        /// </summary>
-        /// <param name="message">The message to be updated.</param>
-        /// <returns>True if the message was updated successfully; otherwise, false.</returns>
-        Task<bool> UpdateMessageAsync(Message message);
-
-        /// <summary>
-        /// Deletes a message from the database.
-        /// </summary>
-        /// <param name="message">The message to be deleted.</param>
-        /// <returns>True if the message was deleted successfully; otherwise, false.</returns>
-        Task<bool> DeleteMessageAsync(Message message);
+        /// Asynchronously saves all changes made to the database context.
+        ///</summary>
+        ///<remarks>
+        /// Use this method to persist any pending changes to the underlying database.
+        /// It ensures that changes are committed atomically and provides a way to handle exceptions.
+        ///</remarks>
+        Task SaveChangesAsync();
 
         /// <summary>
         /// Retrieves the conversation history between the logged-in user and a specific receiver user from the database.
