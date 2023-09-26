@@ -69,7 +69,13 @@ namespace MinimalChatApplication.Data.Services
                 SecurityStamp = Guid.NewGuid().ToString(),
             };
 
-            var result = await _userManager.CreateAsync(user, registerDto.Password);
+            IdentityResult result;
+            if(registerDto.Password == null)
+            {
+                result = await _userManager.CreateAsync(user);
+            }
+
+            result = await _userManager.CreateAsync(user, registerDto.Password);
             if (result.Succeeded)
             {
                 var userResponseDto = new UserResponseDto

@@ -1,4 +1,7 @@
 ﻿using Azure;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -7,6 +10,8 @@ using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
+using Google.Apis.Auth;
 
 namespace MinimalChatApplication.API.Controllers
 {
@@ -16,15 +21,17 @@ namespace MinimalChatApplication.API.Controllers
     {
         private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
+        private readonly SignInManager<ChatApplicationUser> _signInManager;
 
         /// <summary>
         /// Initializes a new instance of the UserController class.
         /// </summary>
         /// <param name="userService">The service responsible for user-related operations.</param>
-        public UserController(IUserService userService, IConfiguration configuration)
+        public UserController(IUserService userService, IConfiguration configuration, SignInManager<ChatApplicationUser> signInManager)
         {
             _userService = userService;
             _configuration = configuration;
+            _signInManager = signInManager;
 
         }
 
@@ -219,5 +226,57 @@ namespace MinimalChatApplication.API.Controllers
                 });
             }
         }
+
+        [HttpPost("google-signin")]
+        public async Task<IActionResult> GoogleSignin([FromBody] GoogleSignInDto data)
+        {
+            GoogleJsonWebSignature.ValidationSettings settings = new GoogleJsonWebSignature.ValidationSettings();
+
+            var googleClientId = _configuration["Authentication:Google:ClientId"];
+
+            settings.Audience = new List<string>()
+            {
+                googleClientId
+            };
+
+            GoogleJsonWebSignature.Payload payload = GoogleJsonWebSignature.ValidateAsync(data.IdToken, settings).Result;
+
+            var existingUser = await _userService.GetUserByEmailAsync(payload.Email);
+
+            if(existingUser == null )
+            {
+                var registerDto = new RegisterDto
+                {
+                    Email = payload.Email,
+                    Name = payload.Name,
+                };
+
+                var result = await _userService.RegisterUserAsync(registerDto);
+
+                var user = await _userService.GetUserByEmailAsync(payload.Email);
+                var jwtToken = _userService.GenerateJwtToken(user);
+
+                return Ok(new
+                {
+                    message = "USer login Successfull.",
+                    jwtToken,
+                    expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                    profile = new
+                    {
+                        id = user.Id,
+                        name = user.Name,
+                        email = user.Email
+                    }
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "No users found",
+                Data = null
+            });
+        }
+        
     }
 }
