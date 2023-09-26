@@ -7,14 +7,17 @@ using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Domain.Interfaces
 {
-    public interface ILogRepository
+    public interface ILogRepository : IGenericRepository<Log>
     {
-        /// <summary>
-        /// Adds a log entry to the database asynchronously.
-        /// </summary>
-        /// <param name="log">The log entry to be added.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        Task AddLogAsync(Log logs);
+
+        ///<summary>
+        /// Asynchronously saves all changes made to the database context.
+        ///</summary>
+        ///<remarks>
+        /// Use this method to persist any pending changes to the underlying database.
+        /// It ensures that changes are committed atomically and provides a way to handle exceptions.
+        ///</remarks>
+        Task SaveChangesAsync();
 
         /// <summary>
         /// Retrieves logs from the database within a specified time range.

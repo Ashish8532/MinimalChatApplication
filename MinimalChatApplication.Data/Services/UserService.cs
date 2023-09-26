@@ -22,7 +22,7 @@ namespace MinimalChatApplication.Data.Services
         private readonly UserManager<ChatApplicationUser> _userManager;
         private readonly SignInManager<ChatApplicationUser> _signInManager;
         private readonly IConfiguration _configuration;
-        private readonly ChatApplicationDbContext _context;
+        private readonly IUserRepository _userRepository;
 
         /// <summary>
         /// Initializes a new instance of the UserService class with dependencies for user management and sign-in.
@@ -32,12 +32,12 @@ namespace MinimalChatApplication.Data.Services
         public UserService(UserManager<ChatApplicationUser> userManager,
             SignInManager<ChatApplicationUser> signInManager,
             IConfiguration configuration,
-            ChatApplicationDbContext context)
+            IUserRepository userRepository)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
-            _context = context;
+            _userRepository = userRepository;
         }
 
         #region User Authentication Operations
@@ -168,25 +168,14 @@ namespace MinimalChatApplication.Data.Services
         }
 
 
-        /// <summary>
-        /// Retrieves a list of users excluding the current user or returns all users if currentUserId is null.
-        /// </summary>
-        /// <param name="currentUserId">The unique identifier of the current user. Pass null to retrieve all users.</param>
-        /// <returns>
-        /// A collection of ChatApplicationUser objects representing users, excluding the current user.
-        /// If currentUserId is null, it returns all users.
-        /// </returns>
-        /// <remarks>
-        /// This method queries the database to retrieve all users except the one identified by the provided currentUserId. 
-        /// If currentUserId is null, it returns all users available in the database.
-        /// </remarks>
+        ///<summary>
+        /// Asynchronously retrieves a list of users except the current user.
+        ///</summary>
+        ///<param name="currentUserId">The unique identifier of the current user.</param>
+        ///<returns>A collection of user entities excluding the current user.</returns>
         public async Task<IEnumerable<ChatApplicationUser>> GetUsersExceptCurrentUserAsync(string currentUserId)
         {
-            if(currentUserId == null)
-            {
-                return null;
-            }
-            return await _context.Users.Where(u => u.Id != currentUserId).ToListAsync();
+           return await _userRepository.GetUsers(currentUserId);
         }
 
         #endregion User Authentication Operations

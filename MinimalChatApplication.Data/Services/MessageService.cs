@@ -46,8 +46,9 @@ namespace MinimalChatApplication.Data.Services
                     ReceiverId = messageDto.ReceiverId,
                     Timestamp = DateTime.Now,
                 };
-                var messageId = await _messageRepository.CreateMessageAsync(message);
-                return messageId;
+                var data = await _messageRepository.AddAsync(message);
+                await _messageRepository.SaveChangesAsync();
+                return data.Id;
             }
             return null;
         }
@@ -65,7 +66,7 @@ namespace MinimalChatApplication.Data.Services
         public async Task<(bool success, int StatusCode, string message)> EditMessageAsync(int messageId, string userId, string newContent)
         {
             // Check if the message with the given ID exists
-            var message = await _messageRepository.GetMessageByIdAsync(messageId);
+            var message = await _messageRepository.GetByIdAsync(messageId);
 
             if (message != null)
             {
@@ -77,7 +78,8 @@ namespace MinimalChatApplication.Data.Services
                 if (newContent != null)
                 {
                     message.Content = newContent;
-                    await _messageRepository.UpdateMessageAsync(message);
+                    _messageRepository.Update(message);
+                    await _messageRepository.SaveChangesAsync();
                     return (true, StatusCodes.Status200OK, "Message edited successfully");
                 }
                 else
@@ -100,7 +102,7 @@ namespace MinimalChatApplication.Data.Services
         public async Task<(bool success, int StatusCode, string message)> DeleteMessageAsync(int messageId, string userId)
         {
             // Check if the message with the given ID exists
-            var message = await _messageRepository.GetMessageByIdAsync(messageId);
+            var message = await _messageRepository.GetByIdAsync(messageId);
 
             if (message != null)
             {
@@ -111,7 +113,8 @@ namespace MinimalChatApplication.Data.Services
                 }
                 else
                 {
-                    await _messageRepository.DeleteMessageAsync(message);
+                    _messageRepository.Remove(message);
+                    await _messageRepository.SaveChangesAsync();
                     return (true, StatusCodes.Status200OK, "Message deleted successfully");
                 }
             }

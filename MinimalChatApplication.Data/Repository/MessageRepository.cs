@@ -11,68 +11,24 @@ using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Data.Repository
 {
-    public class MessageRepository: IMessageRepository
+    public class MessageRepository: GenericRepository<Message>, IMessageRepository
     {
         private readonly ChatApplicationDbContext _context;
-        /// <summary>
-        /// Initializes a new instance of the MessageRepository class.
-        /// </summary>
-        /// <param name="context">The database context for accessing message data.</param>
-        public MessageRepository(ChatApplicationDbContext context)
+        public MessageRepository(ChatApplicationDbContext context) : base(context)
         {
             _context = context;
         }
 
-        /// <summary>
-        /// Creates a new message asynchronously and stores it in the database.
-        /// </summary>
-        /// <param name="message">The message to be created and stored.</param>
-        /// <returns>
-        /// The unique identifier of the created message.
-        /// </returns>
-        public async Task<int?> CreateMessageAsync(Message message)
-        {
-            await _context.Messages.AddAsync(message);
-            await _context.SaveChangesAsync();
-
-            return message.Id;
-        }
-
-
         ///<summary>
-        /// Get a message by its unique identifier asynchronously.
-        /// </summary>
-        /// <param name="messageId">The unique identifier of the message to retrieve.</param>
-        /// <returns>The message with the specified ID, or null if not found.</returns>
-        public async Task<Message> GetMessageByIdAsync(int messageId)
+        /// Asynchronously saves all changes made to the database context.
+        ///</summary>
+        ///<remarks>
+        /// Use this method to persist any pending changes to the underlying database.
+        /// It ensures that changes are committed atomically and provides a way to handle exceptions.
+        ///</remarks>
+        public async Task SaveChangesAsync()
         {
-            return await _context.Messages.FirstOrDefaultAsync(x => x.Id == messageId);
-        }
-
-
-        /// <summary>
-        /// Updates a message in the database.
-        /// </summary>
-        /// <param name="message">The message to be updated.</param>
-        /// <returns>True if the message was updated successfully; otherwise, false.</returns>
-        public async Task<bool> UpdateMessageAsync(Message message)
-        {
-            _context.Messages.Update(message);
             await _context.SaveChangesAsync();
-            return true;
-        }
-
-
-        /// <summary>
-        /// Deletes a message from the database.
-        /// </summary>
-        /// <param name="message">The message to be deleted.</param>
-        /// <returns>True if the message was deleted successfully; otherwise, false.</returns>
-        public async Task<bool> DeleteMessageAsync(Message message)
-        {
-            _context.Messages.Remove(message);
-            await _context.SaveChangesAsync();
-            return true;
         }
 
         /// <summary>

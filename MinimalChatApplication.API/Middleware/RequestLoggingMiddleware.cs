@@ -59,7 +59,8 @@ namespace MinimalChatApplication.API.Middleware
                     RequestBody = requestBody,
                     Username = username
                 };
-                await _logRepository.AddLogAsync(logs);
+                await _logRepository.AddAsync(logs);
+                await _logRepository.SaveChangesAsync();
 
                 await _next(httpContext);
             }
