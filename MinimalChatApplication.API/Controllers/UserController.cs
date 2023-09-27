@@ -1,17 +1,11 @@
-﻿using Azure;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Authentication;
+﻿using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Identity;
-using Google.Apis.Auth;
 
 namespace MinimalChatApplication.API.Controllers
 {
@@ -178,7 +172,7 @@ namespace MinimalChatApplication.API.Controllers
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if(userId == null)
+                if (userId == null)
                 {
                     return Unauthorized(new ApiResponse<object>
                     {
@@ -227,56 +221,109 @@ namespace MinimalChatApplication.API.Controllers
             }
         }
 
+
+        /// <summary>
+        /// Handles Google Sign-In by validating a Google ID token and performing user registration or login.
+        /// </summary>
+        /// <param name="idToken">The Google ID token obtained from the client.</param>
+        /// <returns>
+        /// An IActionResult indicating the result of the Google Sign-In process.
+        /// </returns>
+        /// <remarks>
+        /// This method accepts a Google ID token as a query parameter and validates it against the configured Google client ID.
+        /// If the token is valid, it checks if a user with the associated email already exists.
+        /// If the user does not exist, a new user is registered with the provided email and name.
+        /// If the registration is successful, a JWT token is generated and returned in the response.
+        /// If the user already exists, a JWT token is generated and returned in the response.
+        /// If any errors occur during this process, an appropriate error response is returned.
+        /// </remarks>
         [HttpPost("google-signin")]
-        public async Task<IActionResult> GoogleSignin([FromBody] GoogleSignInDto data)
+        public async Task<IActionResult> GoogleSignin([FromQuery] string idToken)
         {
-            GoogleJsonWebSignature.ValidationSettings settings = new GoogleJsonWebSignature.ValidationSettings();
-
-            var googleClientId = _configuration["Authentication:Google:ClientId"];
-
-            settings.Audience = new List<string>()
+            try
             {
-                googleClientId
-            };
+                GoogleJsonWebSignature.ValidationSettings settings = new GoogleJsonWebSignature.ValidationSettings();
 
-            GoogleJsonWebSignature.Payload payload = GoogleJsonWebSignature.ValidateAsync(data.IdToken, settings).Result;
+                var googleClientId = _configuration["Authentication:Google:ClientId"];
 
-            var existingUser = await _userService.GetUserByEmailAsync(payload.Email);
-
-            if(existingUser == null )
-            {
-                var registerDto = new RegisterDto
+                settings.Audience = new List<string>() 
                 {
-                    Email = payload.Email,
-                    Name = payload.Name,
+                    googleClientId
                 };
 
-                var result = await _userService.RegisterUserAsync(registerDto);
-
-                var user = await _userService.GetUserByEmailAsync(payload.Email);
-                var jwtToken = _userService.GenerateJwtToken(user);
-
-                return Ok(new
+                GoogleJsonWebSignature.Payload payload = GoogleJsonWebSignature.ValidateAsync(idToken, settings).Result;
+                if (payload == null)
                 {
-                    message = "USer login Successfull.",
-                    jwtToken,
-                    expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
-                    profile = new
+                    return BadRequest(new { Message = "Invalid Google Credientials. Invalid Token!" });
+                }
+
+                var existingUser = await _userService.GetUserByEmailAsync(payload.Email);
+
+                if (existingUser == null)
+                {
+                    var registerDto = new RegisterDto
                     {
-                        id = user.Id,
-                        name = user.Name,
-                        email = user.Email
+                        Email = payload.Email,
+                        Name = payload.Name,
+                    };
+
+                    var result = await _userService.RegisterUserAsync(registerDto);
+                    if (result.success)
+                    {
+                        var user = await _userService.GetUserByEmailAsync(payload.Email);
+                        var jwtToken = _userService.GenerateJwtToken(user);
+
+                        return Ok(new
+                        {
+                            message = "User login Successfull.",
+                            jwtToken,
+                            expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                            profile = new
+                            {
+                                id = user.Id,
+                                name = user.Name,
+                                email = user.Email
+                            }
+                        });
                     }
+                    else
+                    {
+                        return StatusCode(result.StatusCode, new ApiResponse<object>
+                        {
+                            StatusCode = result.StatusCode,
+                            Message = result.message,
+                            Data = null
+                        });
+                    }
+                }
+                else
+                {
+                    var user = await _userService.GetUserByEmailAsync(payload.Email);
+                    var jwtToken = _userService.GenerateJwtToken(user);
+
+                    return Ok(new
+                    {
+                        message = "User login Successfull.",
+                        jwtToken,
+                        expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                        profile = new
+                        {
+                            id = user.Id,
+                            name = user.Name,
+                            email = user.Email
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Data = null
                 });
             }
-
-            return Ok(new ApiResponse<object>
-            {
-                StatusCode = StatusCodes.Status200OK,
-                Message = "No users found",
-                Data = null
-            });
         }
-        
     }
 }
