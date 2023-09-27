@@ -1,7 +1,6 @@
-﻿using Azure;
+﻿using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
@@ -16,15 +15,17 @@ namespace MinimalChatApplication.API.Controllers
     {
         private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
+        private readonly SignInManager<ChatApplicationUser> _signInManager;
 
         /// <summary>
         /// Initializes a new instance of the UserController class.
         /// </summary>
         /// <param name="userService">The service responsible for user-related operations.</param>
-        public UserController(IUserService userService, IConfiguration configuration)
+        public UserController(IUserService userService, IConfiguration configuration, SignInManager<ChatApplicationUser> signInManager)
         {
             _userService = userService;
             _configuration = configuration;
+            _signInManager = signInManager;
 
         }
 
@@ -171,7 +172,7 @@ namespace MinimalChatApplication.API.Controllers
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if(userId == null)
+                if (userId == null)
                 {
                     return Unauthorized(new ApiResponse<object>
                     {
@@ -206,6 +207,111 @@ namespace MinimalChatApplication.API.Controllers
                         StatusCode = StatusCodes.Status200OK,
                         Message = "No users found",
                         Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+
+        /// <summary>
+        /// Handles Google Sign-In by validating a Google ID token and performing user registration or login.
+        /// </summary>
+        /// <param name="idToken">The Google ID token obtained from the client.</param>
+        /// <returns>
+        /// An IActionResult indicating the result of the Google Sign-In process.
+        /// </returns>
+        /// <remarks>
+        /// This method accepts a Google ID token as a query parameter and validates it against the configured Google client ID.
+        /// If the token is valid, it checks if a user with the associated email already exists.
+        /// If the user does not exist, a new user is registered with the provided email and name.
+        /// If the registration is successful, a JWT token is generated and returned in the response.
+        /// If the user already exists, a JWT token is generated and returned in the response.
+        /// If any errors occur during this process, an appropriate error response is returned.
+        /// </remarks>
+        [HttpPost("google-signin")]
+        public async Task<IActionResult> GoogleSignin([FromQuery] string idToken)
+        {
+            try
+            {
+                GoogleJsonWebSignature.ValidationSettings settings = new GoogleJsonWebSignature.ValidationSettings();
+
+                var googleClientId = _configuration["Authentication:Google:ClientId"];
+
+                settings.Audience = new List<string>() 
+                {
+                    googleClientId
+                };
+
+                GoogleJsonWebSignature.Payload payload = GoogleJsonWebSignature.ValidateAsync(idToken, settings).Result;
+                if (payload == null)
+                {
+                    return BadRequest(new { Message = "Invalid Google Credientials. Invalid Token!" });
+                }
+
+                var existingUser = await _userService.GetUserByEmailAsync(payload.Email);
+
+                if (existingUser == null)
+                {
+                    var registerDto = new RegisterDto
+                    {
+                        Email = payload.Email,
+                        Name = payload.Name,
+                    };
+
+                    var result = await _userService.RegisterUserAsync(registerDto);
+                    if (result.success)
+                    {
+                        var user = await _userService.GetUserByEmailAsync(payload.Email);
+                        var jwtToken = _userService.GenerateJwtToken(user);
+
+                        return Ok(new
+                        {
+                            message = "User login Successfull.",
+                            jwtToken,
+                            expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                            profile = new
+                            {
+                                id = user.Id,
+                                name = user.Name,
+                                email = user.Email
+                            }
+                        });
+                    }
+                    else
+                    {
+                        return StatusCode(result.StatusCode, new ApiResponse<object>
+                        {
+                            StatusCode = result.StatusCode,
+                            Message = result.message,
+                            Data = null
+                        });
+                    }
+                }
+                else
+                {
+                    var user = await _userService.GetUserByEmailAsync(payload.Email);
+                    var jwtToken = _userService.GenerateJwtToken(user);
+
+                    return Ok(new
+                    {
+                        message = "User login Successfull.",
+                        jwtToken,
+                        expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                        profile = new
+                        {
+                            id = user.Id,
+                            name = user.Name,
+                            email = user.Email
+                        }
                     });
                 }
             }
