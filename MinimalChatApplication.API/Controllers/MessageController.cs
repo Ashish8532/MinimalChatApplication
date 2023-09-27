@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using MinimalChatApplication.API.Hubs;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
+using MinimalChatApplication.Domain.Models;
 using System.Security.Claims;
 
 namespace MinimalChatApplication.API.Controllers
@@ -13,14 +16,16 @@ namespace MinimalChatApplication.API.Controllers
     public class MessageController : ControllerBase
     {
         private readonly IMessageService _messageService;
+        private readonly IHubContext<ChatHub> _chatHub;
 
         /// <summary>
         /// Initializes a new instance of the MessageController class.
         /// </summary>
         /// <param name="messageService">The service responsible for message-related operations.</param>
-        public MessageController(IMessageService messageService)
+        public MessageController(IMessageService messageService, IHubContext<ChatHub> chatHub)
         {
             _messageService = messageService;
+            _chatHub = chatHub;
         }
 
 
@@ -72,6 +77,7 @@ namespace MinimalChatApplication.API.Controllers
                         Content = messageDto.Content,
                         Timestamp = DateTime.Now
                     };
+                    await _chatHub.Clients.User(messageDto.ReceiverId).SendAsync("ReceiveMessage", messageDto.Content);
 
                     return Ok(new ApiResponse<MessageResponseDto>
                     {
@@ -133,12 +139,25 @@ namespace MinimalChatApplication.API.Controllers
                 // Update the message content
                 var updateResult = await _messageService.EditMessageAsync(messageId, userId, editMessageDto.Content);
 
-                return StatusCode(updateResult.StatusCode, new ApiResponse<object>
+                if(updateResult.success)
                 {
-                    StatusCode = updateResult.StatusCode,
-                    Message = updateResult.message,
-                    Data = null
-                });
+                    await _chatHub.Clients.All.SendAsync("ReceiveEditedMessage", messageId, editMessageDto.Content);
+                    return Ok(new ApiResponse<object>
+                    {
+                        StatusCode = updateResult.StatusCode,
+                        Message = updateResult.message,
+                        Data = null
+                    });
+                }
+                else
+                {
+                    return StatusCode(updateResult.StatusCode, new ApiResponse<object>
+                    {
+                        StatusCode = updateResult.StatusCode,
+                        Message = updateResult.message,
+                        Data = null
+                    });
+                }
             }
             catch (Exception ex)
             {
@@ -180,6 +199,17 @@ namespace MinimalChatApplication.API.Controllers
 
                 // Delete the message
                 var deleteResult = await _messageService.DeleteMessageAsync(messageId, userId);
+
+                if(deleteResult.success)
+                {
+                    await _chatHub.Clients.All.SendAsync("ReceiveDeletedMessage", messageId);
+                    return Ok(new ApiResponse<object>
+                    {
+                        StatusCode = deleteResult.StatusCode,
+                        Message = deleteResult.message,
+                        Data = null
+                    });
+                }
 
                 return StatusCode(deleteResult.StatusCode, new ApiResponse<object>
                 {

@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MinimalChatApplication.API.Hubs;
 using MinimalChatApplication.API.Middleware;
 using MinimalChatApplication.Data.Context;
 using MinimalChatApplication.Data.Repository;
@@ -105,13 +107,16 @@ builder.Services.AddAuthentication(options =>
     options.ClientSecret = Configuration["Authentication:Google:ClientSecret"];
 });
 
-builder.Services.AddCors(option =>
+builder.Services.AddCors(options =>
 {
-    option.AddPolicy("MyPolicy", builder =>
-    {
-        builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-    });
+    options.AddPolicy("MyPolicy", builder => builder
+        .WithOrigins("http://localhost:4200")
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials());
 });
+
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -133,5 +138,7 @@ app.UseAuthorization();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.MapControllers();
+
+app.MapHub<ChatHub>("/chatHub");
 
 app.Run();
