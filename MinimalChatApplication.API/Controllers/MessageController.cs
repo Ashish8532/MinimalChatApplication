@@ -77,7 +77,9 @@ namespace MinimalChatApplication.API.Controllers
                         Content = messageDto.Content,
                         Timestamp = DateTime.Now
                     };
-                    await _chatHub.Clients.User(messageDto.ReceiverId).SendAsync("ReceiveMessage", messageDto.Content);
+
+                    // Broadcasts a new message to all connected clients using SignalR.
+                    await _chatHub.Clients.All.SendAsync("ReceiveMessage", messageResponseDto);
 
                     return Ok(new ApiResponse<MessageResponseDto>
                     {
@@ -141,6 +143,7 @@ namespace MinimalChatApplication.API.Controllers
 
                 if(updateResult.success)
                 {
+                    // Broadcasts an edited message to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveEditedMessage", messageId, editMessageDto.Content);
                     return Ok(new ApiResponse<object>
                     {
@@ -202,6 +205,7 @@ namespace MinimalChatApplication.API.Controllers
 
                 if(deleteResult.success)
                 {
+                    // Broadcasts a deleted message notification to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveDeletedMessage", messageId);
                     return Ok(new ApiResponse<object>
                     {
