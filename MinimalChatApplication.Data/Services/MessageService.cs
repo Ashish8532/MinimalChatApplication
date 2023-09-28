@@ -147,5 +147,28 @@ namespace MinimalChatApplication.Data.Services
 
             return messageResponseDtos;
         }
+
+
+        ///<summary>
+        /// Searches for messages containing a specific query in conversations where the user is either the sender or receiver.
+        ///</summary>
+        ///<param name="userId">The ID of the user initiating the search.</param>
+        ///<param name="query">The string to search for in conversation messages.</param>
+        ///<returns>A collection of MessageResponseDto representing the search results.</returns>
+        public async Task<IEnumerable<MessageResponseDto>> SearchConversationsAsync(string userId, string query)
+        {
+            var searchedConversation = await _messageRepository.SearchConversationsAsync(userId, query);
+
+            var messageResponseDtos = searchedConversation.Select(message => new MessageResponseDto
+            {
+                MessageId = message.Id,
+                SenderId = message.SenderId,
+                ReceiverId = message.ReceiverId,
+                Content = message.Content,
+                Timestamp = message.Timestamp
+            }).ToList();
+
+            return messageResponseDtos;
+        }
     }
 }

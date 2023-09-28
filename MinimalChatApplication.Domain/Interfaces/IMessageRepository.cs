@@ -29,5 +29,14 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <param name="sort">The sorting mechanism for messages (asc or desc).</param>
         /// <returns>An IEnumerable of Message objects representing the conversation history.</returns>
         Task<IEnumerable<Message>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort);
+
+        /// <summary>
+        /// Searches for messages containing a specified query string within conversations of a user (sender or receiver).
+        /// </summary>
+        /// <param name="userId">ID of the user performing the search.</param>
+        /// <param name="query">The string to search within message content.</param>
+        /// <returns>A collection of messages matching the search criteria.</returns>
+        Task<IEnumerable<Message>> SearchConversationsAsync(string userId, string query);
+
     }
 }
