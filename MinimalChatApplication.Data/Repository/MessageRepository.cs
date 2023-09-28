@@ -64,5 +64,22 @@ namespace MinimalChatApplication.Data.Repository
 
             return await query.ToListAsync();
         }
+
+
+        /// <summary>
+        /// Searches for messages containing a specified query string within conversations of a user (sender or receiver).
+        /// </summary>
+        /// <param name="userId">ID of the user performing the search.</param>
+        /// <param name="query">The string to search within message content.</param>
+        /// <returns>A collection of messages matching the search criteria.</returns>
+        public async Task<IEnumerable<Message>> SearchConversationsAsync(string userId, string query)
+        {
+            // Implement the logic to search conversations in the database
+            var queryResult = await _context.Messages
+                .Where(m => (m.SenderId == userId || m.ReceiverId == userId) && m.Content.Contains(query))
+                .ToListAsync();
+
+            return queryResult;
+        }
     }
 }
