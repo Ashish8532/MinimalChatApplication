@@ -74,8 +74,10 @@ namespace MinimalChatApplication.Data.Services
             {
                 result = await _userManager.CreateAsync(user);
             }
-
-            result = await _userManager.CreateAsync(user, registerDto.Password);
+            else
+            {
+                result = await _userManager.CreateAsync(user, registerDto.Password);
+            }
             if (result.Succeeded)
             {
                 var userResponseDto = new UserResponseDto
