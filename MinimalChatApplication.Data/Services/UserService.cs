@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -162,7 +163,7 @@ namespace MinimalChatApplication.Data.Services
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
 
             // Get the token's lifetime in minutes from configuration
-            var lifetimeInMinutes = Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"]);
+            var lifetimeInMinutes = Convert.ToInt32(_configuration["JWT:TokenValidityInMinutes"]);
 
             var jwtToken = new JwtSecurityToken(
                 issuer: _configuration["JWT:ValidIssuer"],
@@ -177,6 +178,82 @@ namespace MinimalChatApplication.Data.Services
         }
 
 
+        /// <summary>
+        /// Generates a secure random string to be used as a refresh token.
+        /// </summary>
+        /// <returns>A base64-encoded string representing the refresh token.</returns>
+        /// <remarks>
+        /// This method creates a cryptographically secure random byte array and converts it to a 
+        /// base64-encoded string, providing a secure refresh token for user authentication.
+        /// </remarks>
+        public string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[64];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
+
+
+        /// <summary>
+        /// Updates the refresh token for a user identified by the provided email.
+        /// </summary>
+        /// <param name="email">The email address of the user to update.</param>
+        /// <param name="refreshToken">The new refresh token to set for the user.</param>
+        /// <param name="refreshTokenValidityInDays">Optional: The new expiration time for the refresh token.</param>
+        /// <returns>An IdentityResult indicating the success or failure of the update operation.</returns>
+        /// <remarks>
+        /// This method updates the refresh token for the user with the specified email. If a new 
+        /// expiration time is provided, it updates the refresh token expiry time as well.
+        /// </remarks>
+        public async Task<IdentityResult> UpdateRefreshToken(string email, string? refreshToken, DateTime? refreshTokenValidityInDays)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if(refreshTokenValidityInDays == null)
+            {
+                user.RefreshToken = refreshToken;
+                return await _userManager.UpdateAsync(user);
+            }
+            else
+            {
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiryTime = refreshTokenValidityInDays;
+
+                return await _userManager.UpdateAsync(user);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the claims principal from an expired JWT token.
+        /// </summary>
+        /// <param name="token">The expired JWT token.</param>
+        /// <returns>The claims principal extracted from the token.</returns>
+        /// <remarks>
+        /// This method validates and extracts the claims principal from an expired JWT token. 
+        /// It bypasses audience and issuer validation and disregards token lifetime.
+        /// </remarks>
+        public ClaimsPrincipal GetPrincipalFromExpiredToken(string? token)
+        {
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"])),
+                ValidateLifetime = false
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+            if (securityToken is not JwtSecurityToken jwtSecurityToken || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                throw new SecurityTokenException("Invalid token");
+
+            return principal;
+        }
+
+        #endregion User Authentication Operations
+
+
         ///<summary>
         /// Asynchronously retrieves a list of users except the current user.
         ///</summary>
@@ -186,7 +263,6 @@ namespace MinimalChatApplication.Data.Services
         {
            return await _userRepository.GetUsers(currentUserId);
         }
-
-        #endregion User Authentication Operations
+       
     }
 }

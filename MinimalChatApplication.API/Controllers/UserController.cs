@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
+using Newtonsoft.Json.Linq;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace MinimalChatApplication.API.Controllers
@@ -118,11 +120,16 @@ namespace MinimalChatApplication.API.Controllers
                 {
                     var user = await _userService.GetUserByEmailAsync(model.Email);
                     var jwtToken = _userService.GenerateJwtToken(user);
+                    var refreshToken = _userService.GenerateRefreshToken();
+                    var refreshTokenValidityInDays = DateTime.Now.AddDays(Convert.ToInt32(_configuration["JWT:RefreshTokenValidityInDays"]));
+
+                    await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
 
                     return Ok(new
                     {
                         message = loginResult.Message,
-                        jwtToken,
+                        accessToken = jwtToken,
+                        refreshToken,
                         expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
                         profile = new
                         {
@@ -272,11 +279,17 @@ namespace MinimalChatApplication.API.Controllers
                     {
                         var user = await _userService.GetUserByEmailAsync(payload.Email);
                         var jwtToken = _userService.GenerateJwtToken(user);
+                        var refreshToken = _userService.GenerateRefreshToken();
+
+                        var refreshTokenValidityInDays = DateTime.Now.AddDays(Convert.ToInt32(_configuration["JWT:RefreshTokenValidityInDays"]));
+
+                        await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
 
                         return Ok(new
                         {
                             message = "User login Successfull.",
-                            jwtToken,
+                            accessToken = jwtToken,
+                            refreshToken,
                             expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
                             profile = new
                             {
@@ -300,11 +313,17 @@ namespace MinimalChatApplication.API.Controllers
                 {
                     var user = await _userService.GetUserByEmailAsync(payload.Email);
                     var jwtToken = _userService.GenerateJwtToken(user);
+                    var refreshToken = _userService.GenerateRefreshToken();
+
+                    var refreshTokenValidityInDays = DateTime.Now.AddDays(Convert.ToInt32(_configuration["JWT:RefreshTokenValidityInDays"]));
+
+                    await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
 
                     return Ok(new
                     {
                         message = "User login Successfull.",
-                        jwtToken,
+                        accessToken = jwtToken,
+                        refreshToken,
                         expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
                         profile = new
                         {
@@ -314,6 +333,68 @@ namespace MinimalChatApplication.API.Controllers
                         }
                     });
                 }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+
+        /// <summary>
+        /// Handles the refresh token request, generating a new access token and refresh token for the user.
+        /// </summary>
+        /// <param name="tokenDto">The token data containing the expired access token and refresh token.</param>
+        /// <returns>
+        /// An IActionResult containing a new access token and refresh token if the request is valid.
+        /// </returns>
+        /// <remarks>
+        /// This method validates the provided access token and refresh token, checks for their validity, 
+        /// and generates new tokens if the request is valid. If any errors occur during this process, 
+        /// an appropriate error response is returned.
+        /// </remarks>
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] TokenDto tokenDto)
+        {
+            try
+            {
+                if (tokenDto is null)
+                {
+                    return BadRequest("Invalid client request");
+                }
+                string accessToken = tokenDto.AccessToken!;
+                string refreshToken = tokenDto.RefreshToken!;
+
+                var principal = _userService.GetPrincipalFromExpiredToken(accessToken);
+                if (principal == null)
+                {
+                    return BadRequest("Invalid claim principle");
+                }
+
+                string username = principal.Identity.Name;
+
+                var user = await _userService.GetUserByEmailAsync(username);
+
+                if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.Now)
+                {
+                    return BadRequest("Invalid access token or refresh token");
+                }
+
+                var newAccessToken = _userService.GenerateJwtToken(user);
+                var newRefreshToken = _userService.GenerateRefreshToken();
+
+                await _userService.UpdateRefreshToken(user.Email, newRefreshToken, null);
+
+                return Ok(new
+                {
+                    accessToken = newAccessToken,
+                    refreshToken = newRefreshToken
+                });
             }
             catch (Exception ex)
             {

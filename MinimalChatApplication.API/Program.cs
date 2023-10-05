@@ -25,7 +25,7 @@ builder.Services.AddEndpointsApiExplorer();
 // Define and configure Swagger documentation settings for API.
 builder.Services.AddSwaggerGen(option =>
 {
-    option.SwaggerDoc("v1", new OpenApiInfo { Title = "IdentityApi", Version = "v1" });
+    option.SwaggerDoc("v1", new OpenApiInfo { Title = "MinimalChatAPI", Version = "v1" });
     option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -95,10 +95,14 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuer = true,
         ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ClockSkew = TimeSpan.Zero,
+
         ValidAudience = Configuration["JWT:ValidAudience"],
         ValidIssuer = Configuration["JWT:ValidIssuer"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["JWT:Secret"])),
-        ClockSkew = TimeSpan.Zero
+        
     };
 })
 .AddGoogle(options =>

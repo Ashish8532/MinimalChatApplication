@@ -4,6 +4,7 @@ using MinimalChatApplication.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,6 +12,7 @@ namespace MinimalChatApplication.Domain.Interfaces
 {
     public interface IUserService
     {
+        #region User Authentication Operations
 
         /// <summary>
         /// Registers a new user asynchronously.
@@ -53,6 +55,43 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <param name="user">The user for whom the token is generated.</param>
         /// <returns>The JWT token as a string.</returns>
         string GenerateJwtToken(ChatApplicationUser user);
+
+        /// <summary>
+        /// Generates a secure random string to be used as a refresh token.
+        /// </summary>
+        /// <returns>A base64-encoded string representing the refresh token.</returns>
+        /// <remarks>
+        /// This method creates a cryptographically secure random byte array and converts it to a 
+        /// base64-encoded string, providing a secure refresh token for user authentication.
+        /// </remarks>
+        string GenerateRefreshToken();
+
+        /// <summary>
+        /// Updates the refresh token for a user identified by the provided email.
+        /// </summary>
+        /// <param name="email">The email address of the user to update.</param>
+        /// <param name="refreshToken">The new refresh token to set for the user.</param>
+        /// <param name="refreshTokenValidityInDays">Optional: The new expiration time for the refresh token.</param>
+        /// <returns>An IdentityResult indicating the success or failure of the update operation.</returns>
+        /// <remarks>
+        /// This method updates the refresh token for the user with the specified email. If a new 
+        /// expiration time is provided, it updates the refresh token expiry time as well.
+        /// </remarks>
+        Task<IdentityResult> UpdateRefreshToken(string email, string? refreshToken, DateTime? refreshTokenValidityInDays);
+
+        /// <summary>
+        /// Retrieves the claims principal from an expired JWT token.
+        /// </summary>
+        /// <param name="token">The expired JWT token.</param>
+        /// <returns>The claims principal extracted from the token.</returns>
+        /// <remarks>
+        /// This method validates and extracts the claims principal from an expired JWT token. 
+        /// It bypasses audience and issuer validation and disregards token lifetime.
+        /// </remarks>
+        ClaimsPrincipal GetPrincipalFromExpiredToken(string? token);
+
+        #endregion User Authentication Operations
+
 
         ///<summary>
         /// Asynchronously retrieves a list of users except the current user.
