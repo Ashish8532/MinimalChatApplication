@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MinimalChatApplication.API.Hubs;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
-using MinimalChatApplication.Domain.Models;
 using System.Security.Claims;
 
 namespace MinimalChatApplication.API.Controllers
@@ -67,7 +65,7 @@ namespace MinimalChatApplication.API.Controllers
                     });
                 }
                 var messageId = await _messageService.SendMessageAsync(messageDto, senderId);
-                if(messageId != null)
+                if (messageId != null)
                 {
                     var messageResponseDto = new MessageResponseDto
                     {
@@ -141,7 +139,7 @@ namespace MinimalChatApplication.API.Controllers
                 // Update the message content
                 var updateResult = await _messageService.EditMessageAsync(messageId, userId, editMessageDto.Content);
 
-                if(updateResult.success)
+                if (updateResult.success)
                 {
                     // Broadcasts an edited message to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveEditedMessage", messageId, editMessageDto.Content);
@@ -203,7 +201,7 @@ namespace MinimalChatApplication.API.Controllers
                 // Delete the message
                 var deleteResult = await _messageService.DeleteMessageAsync(messageId, userId);
 
-                if(deleteResult.success)
+                if (deleteResult.success)
                 {
                     // Broadcasts a deleted message notification to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveDeletedMessage", messageId);
@@ -249,7 +247,7 @@ namespace MinimalChatApplication.API.Controllers
         /// </returns>
         [HttpGet]
         public async Task<IActionResult> RetrieveConversationHistory([FromQuery] Guid userId, [FromQuery] DateTime? before = null,
-            [FromQuery] int count = 20, [FromQuery] string sort = "asc")        
+            [FromQuery] int count = 20, [FromQuery] string sort = "asc")
         {
             try
             {

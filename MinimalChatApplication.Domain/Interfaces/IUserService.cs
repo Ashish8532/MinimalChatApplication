@@ -1,12 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Domain.Interfaces
 {
