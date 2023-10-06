@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
-using Newtonsoft.Json.Linq;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace MinimalChatApplication.API.Controllers
@@ -253,7 +251,7 @@ namespace MinimalChatApplication.API.Controllers
 
                 var googleClientId = _configuration["Authentication:Google:ClientId"];
 
-                settings.Audience = new List<string>() 
+                settings.Audience = new List<string>()
                 {
                     googleClientId
                 };
@@ -347,28 +345,23 @@ namespace MinimalChatApplication.API.Controllers
 
 
         /// <summary>
-        /// Handles the refresh token request, generating a new access token and refresh token for the user.
+        /// Refreshes an access token using a valid refresh token.
         /// </summary>
-        /// <param name="tokenDto">The token data containing the expired access token and refresh token.</param>
+        /// <param name="accessToken">The expired access token.</param>
+        /// <param name="refreshToken">The valid refresh token.</param>
         /// <returns>
-        /// An IActionResult containing a new access token and refresh token if the request is valid.
+        /// An IActionResult containing a new access token and refresh token if the request is valid,
+        /// or a BadRequest response with an error message if the request is invalid.
         /// </returns>
-        /// <remarks>
-        /// This method validates the provided access token and refresh token, checks for their validity, 
-        /// and generates new tokens if the request is valid. If any errors occur during this process, 
-        /// an appropriate error response is returned.
-        /// </remarks>
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromBody] TokenDto tokenDto)
+        public async Task<IActionResult> RefreshToken([FromQuery] string accessToken, [FromQuery] string refreshToken)
         {
             try
             {
-                if (tokenDto is null)
+                if (accessToken == null && refreshToken == null)
                 {
                     return BadRequest("Invalid client request");
                 }
-                string accessToken = tokenDto.AccessToken!;
-                string refreshToken = tokenDto.RefreshToken!;
 
                 var principal = _userService.GetPrincipalFromExpiredToken(accessToken);
                 if (principal == null)

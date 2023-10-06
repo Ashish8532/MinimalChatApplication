@@ -1,20 +1,14 @@
-﻿  using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using MinimalChatApplication.Data.Context;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Data.Services
 {
@@ -71,7 +65,7 @@ namespace MinimalChatApplication.Data.Services
             };
 
             IdentityResult result;
-            if(registerDto.Password == null)
+            if (registerDto.Password == null)
             {
                 result = await _userManager.CreateAsync(user);
             }
@@ -209,7 +203,7 @@ namespace MinimalChatApplication.Data.Services
         public async Task<IdentityResult> UpdateRefreshToken(string email, string? refreshToken, DateTime? refreshTokenValidityInDays)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            if(refreshTokenValidityInDays == null)
+            if (refreshTokenValidityInDays == null)
             {
                 user.RefreshToken = refreshToken;
                 return await _userManager.UpdateAsync(user);
@@ -261,8 +255,8 @@ namespace MinimalChatApplication.Data.Services
         ///<returns>A collection of user entities excluding the current user.</returns>
         public async Task<IEnumerable<ChatApplicationUser>> GetUsersExceptCurrentUserAsync(string currentUserId)
         {
-           return await _userRepository.GetUsers(currentUserId);
+            return await _userRepository.GetUsers(currentUserId);
         }
-       
+
     }
 }

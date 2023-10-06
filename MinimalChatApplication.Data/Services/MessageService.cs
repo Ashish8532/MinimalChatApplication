@@ -1,18 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Web.Razor.Generator;
 
 namespace MinimalChatApplication.Data.Services
 {
-    public class MessageService: IMessageService
+    public class MessageService : IMessageService
     {
         private readonly IMessageRepository _messageRepository;
 
@@ -25,7 +18,7 @@ namespace MinimalChatApplication.Data.Services
             _messageRepository = messageRepository;
         }
 
-       
+
 
         /// <summary>
         /// Sends a message asynchronously.
@@ -37,7 +30,7 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         public async Task<int?> SendMessageAsync(MessageDto messageDto, string senderId)
         {
-            if(messageDto != null)
+            if (messageDto != null)
             {
                 var message = new Message
                 {
