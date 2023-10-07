@@ -39,5 +39,15 @@ namespace MinimalChatApplication.Data.Repository
             }
             return await _dbContext.Users.Where(u => u.Id != currentUserId).ToListAsync();
         }
+
+
+        public async Task<bool> GetUserStatusAsync(string userId)
+        {
+            var user = await _dbContext.Users
+                .AsNoTracking() // Use AsNoTracking to avoid attaching the entity to the context
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            return user?.IsActive ?? false; // Return IsActive or false if user is not found
+        }
     }
 }

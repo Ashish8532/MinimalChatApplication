@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using MinimalChatApplication.API.Hubs;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
+using System.Data;
 using System.Security.Claims;
 
 namespace MinimalChatApplication.API.Controllers
@@ -277,7 +278,7 @@ namespace MinimalChatApplication.API.Controllers
                 }
 
                 // Call the service method to retrieve conversation history
-                var conversationHistory = await _messageService.GetConversationHistoryAsync(
+                var (conversationHistory, userStatus) = await _messageService.GetConversationHistoryAsync(
                        loggedInUserId, userId.ToString(), before, count, sort);
 
                 if (conversationHistory == null || !conversationHistory.Any())
@@ -289,11 +290,16 @@ namespace MinimalChatApplication.API.Controllers
                         Data = null
                     });
                 }
-                return Ok(new ApiResponse<IEnumerable<MessageResponseDto>>
+
+                // Broadcasts status to all connected clients using SignalR.
+                await _chatHub.Clients.All.SendAsync("UpdateStatus", userStatus);
+                return Ok(new 
                 {
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Conversation history retrieved successfully",
-                    Data = conversationHistory
+                    Data = conversationHistory,
+                    IsActive = userStatus
+
                 });
             }
             catch (Exception ex)
