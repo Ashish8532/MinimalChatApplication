@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
@@ -8,14 +9,16 @@ namespace MinimalChatApplication.Data.Services
     public class MessageService : IMessageService
     {
         private readonly IMessageRepository _messageRepository;
+        private readonly IUserRepository _userRepository;
 
         /// <summary>
         /// Initializes a new instance of the MessageService class.
         /// </summary>
         /// <param name="messageRepository">The repository responsible for message data access.</param>
-        public MessageService(IMessageRepository messageRepository)
+        public MessageService(IMessageRepository messageRepository, IUserRepository userRepository)
         {
             _messageRepository = messageRepository;
+            _userRepository = userRepository;
         }
 
 
@@ -124,10 +127,12 @@ namespace MinimalChatApplication.Data.Services
         /// <param name="count">The number of messages to retrieve.</param>
         /// <param name="sort">The sorting mechanism for messages (asc or desc).</param>
         /// <returns>An IEnumerable of MessageResponseDto containing conversation history.</returns>
-        public async Task<IEnumerable<MessageResponseDto>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
+        public async Task<(IEnumerable<MessageResponseDto>, bool status)> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
         {
             var conversationHistory = await _messageRepository
                 .GetConversationHistoryAsync(loggedInUserId, receiverId, before, count, sort);
+
+            var userStatus = await _userRepository.GetUserStatusAsync(receiverId);
 
             var messageResponseDtos = conversationHistory.Select(message => new MessageResponseDto
             {
@@ -138,7 +143,7 @@ namespace MinimalChatApplication.Data.Services
                 Timestamp = message.Timestamp
             }).ToList();
 
-            return messageResponseDtos;
+            return (messageResponseDtos, userStatus);
         }
 
 

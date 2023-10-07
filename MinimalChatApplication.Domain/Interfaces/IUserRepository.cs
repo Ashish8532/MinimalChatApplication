@@ -22,5 +22,8 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// If currentUserId is null, it returns all users available in the database.
         /// </remarks>
         Task<IEnumerable<ChatApplicationUser>> GetUsers(string currentUserId);
+
+
+        Task<bool> GetUserStatusAsync(string userId);
     }
 }

@@ -15,6 +15,9 @@ namespace MinimalChatApplication.Domain.Models
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
 
+        public bool IsActive { get; set; } = false;
+        public int UnreadMessageCount { get; set; }
+
         // Add a navigation property for messages sent by this user
         public ICollection<Message> SentMessages { get; set; }
 

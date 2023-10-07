@@ -37,5 +37,11 @@ namespace MinimalChatApplication.API.Hubs
         {
             await Clients.All.SendAsync("ReceiveDeletedMessage", messageId);
         }
+
+
+        public async Task ChangeStatus(bool status)
+        {
+            await Clients.All.SendAsync("UpdateStatus", status);
+        }
     }
 }

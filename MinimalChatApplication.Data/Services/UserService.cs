@@ -111,10 +111,19 @@ namespace MinimalChatApplication.Data.Services
                 return (false, StatusCodes.Status401Unauthorized, "Login failed due to incorrect credentials");
             }
 
+           
+
             var result = await _signInManager.PasswordSignInAsync(user, password, isPersistent: false, lockoutOnFailure: false);
 
             if (result.Succeeded)
             {
+                user.IsActive = true;
+                var updateResult = await _userManager.UpdateAsync(user);
+
+                if (!updateResult.Succeeded)
+                {
+                    return (false, StatusCodes.Status400BadRequest, "Failed to update user status");
+                }
                 return (true, StatusCodes.Status200OK, "Login successful");
             }
             else
@@ -258,5 +267,35 @@ namespace MinimalChatApplication.Data.Services
             return await _userRepository.GetUsers(currentUserId);
         }
 
+
+        public async Task<(bool Success, int StatusCode, string Message)> UpdateUserStatusAsync(string loggedInUserId)
+        {
+            try
+            {
+                var user = await _userManager.FindByIdAsync(loggedInUserId);
+
+                if (user == null)
+                {
+                    return (false, StatusCodes.Status404NotFound, "Current user not found");
+                }
+
+                user.IsActive = false;
+                var updateResult = await _userManager.UpdateAsync(user);
+
+                if (!updateResult.Succeeded)
+                {
+                    return (false, StatusCodes.Status400BadRequest, "Failed to update user status");
+                }
+
+               
+
+                return (true, StatusCodes.Status200OK, "User statuses updated successfully");
+            }
+            catch (Exception ex)
+            {
+                // Log or handle exceptions
+                return (false, StatusCodes.Status500InternalServerError, "Internal server error");
+            }
+        }
     }
 }

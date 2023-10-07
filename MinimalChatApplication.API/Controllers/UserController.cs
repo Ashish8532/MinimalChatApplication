@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using MinimalChatApplication.API.Hubs;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
@@ -16,16 +18,20 @@ namespace MinimalChatApplication.API.Controllers
         private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
         private readonly SignInManager<ChatApplicationUser> _signInManager;
+        private readonly IHubContext<ChatHub> _chatHub;
 
         /// <summary>
         /// Initializes a new instance of the UserController class.
         /// </summary>
         /// <param name="userService">The service responsible for user-related operations.</param>
-        public UserController(IUserService userService, IConfiguration configuration, SignInManager<ChatApplicationUser> signInManager)
+        public UserController(IUserService userService, IConfiguration configuration,
+            SignInManager<ChatApplicationUser> signInManager,
+            IHubContext<ChatHub> chatHub)
         {
             _userService = userService;
             _configuration = configuration;
             _signInManager = signInManager;
+            _chatHub = chatHub;
 
         }
 
@@ -123,6 +129,8 @@ namespace MinimalChatApplication.API.Controllers
 
                     await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
 
+                    // Broadcasts status to all connected clients using SignalR.
+                    await _chatHub.Clients.All.SendAsync("UpdateStatus", true);
                     return Ok(new
                     {
                         message = loginResult.Message,
@@ -283,6 +291,8 @@ namespace MinimalChatApplication.API.Controllers
 
                         await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
 
+                        // Broadcasts status to all connected clients using SignalR.
+                        await _chatHub.Clients.All.SendAsync("UpdateStatus", true);
                         return Ok(new
                         {
                             message = "User login Successfull.",
@@ -317,6 +327,8 @@ namespace MinimalChatApplication.API.Controllers
 
                     await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
 
+                    // Broadcasts status to all connected clients using SignalR.
+                    await _chatHub.Clients.All.SendAsync("UpdateStatus", true);
                     return Ok(new
                     {
                         message = "User login Successfull.",
@@ -397,6 +409,72 @@ namespace MinimalChatApplication.API.Controllers
                     Message = $"An error occurred while processing your request. {ex.Message}",
                     Data = null
                 });
+            }
+        }
+
+
+        [Authorize]
+        [HttpPost("status")]
+        public async Task<IActionResult> UpdateUserStatus()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+            {
+                return Unauthorized(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status401Unauthorized,
+                    Message = "Unauthorized access",
+                    Data = null
+                });
+            }
+
+            var result = await _userService.UpdateUserStatusAsync(userId);
+            if (result.Success)
+            {
+
+                // Broadcasts status to all connected clients using SignalR.
+                await _chatHub.Clients.All.SendAsync("UpdateStatus", false);
+
+                return Ok(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = result.Message,
+                    Data = null
+                });
+            }
+            else
+            {
+                switch (result.StatusCode)
+                {
+                    case StatusCodes.Status404NotFound:
+                        return NotFound(new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                    case StatusCodes.Status400BadRequest:
+                        return BadRequest(new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                    case StatusCodes.Status500InternalServerError:
+                        return StatusCode(500, new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                    default:
+                        return StatusCode(500, new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                }
             }
         }
     }

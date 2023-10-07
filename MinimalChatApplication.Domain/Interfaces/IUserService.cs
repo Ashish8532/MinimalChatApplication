@@ -94,5 +94,6 @@ namespace MinimalChatApplication.Domain.Interfaces
         ///<param name="currentUserId">The unique identifier of the current user.</param>
         ///<returns>A collection of user entities excluding the current user.</returns>
         Task<IEnumerable<ChatApplicationUser>> GetUsersExceptCurrentUserAsync(string currentUserId);
+        Task<(bool Success, int StatusCode, string Message)> UpdateUserStatusAsync(string loggedInUserId);
     }
 }
