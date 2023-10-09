@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MinimalChatApplication.Data.Context;
+using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 using System;
@@ -31,13 +32,24 @@ namespace MinimalChatApplication.Data.Repository
         /// This method queries the database to retrieve all users except the one identified by the provided currentUserId. 
         /// If currentUserId is null, it returns all users available in the database.
         /// </remarks>
-        public async Task<IEnumerable<ChatApplicationUser>> GetUsers(string currentUserId)
+        public async Task<IEnumerable<UserResponseDto>> GetUsers(string currentUserId)
         {
-            if (currentUserId == null)
-            {
-                return null;
-            }
-            return await _dbContext.Users.Where(u => u.Id != currentUserId).ToListAsync();
+            var usersWithMessageCount = await (from user in _dbContext.Users
+                                               where user.Id != currentUserId
+                                               join unreadMessageCount in _dbContext.UnreadMessageCounts
+                                               on new { SenderId = user.Id, ReceiverId = currentUserId }
+                                               equals new { unreadMessageCount.SenderId, unreadMessageCount.ReceiverId }
+                                               into counts
+                                               from count in counts.DefaultIfEmpty()
+                                               select new UserResponseDto
+                                               {
+                                                   UserId = user.Id,
+                                                   Name = user.Name,
+                                                   Email = user.Email,
+                                                   MessageCount = count != null ? count.MessageCount : 0,
+                                                   IsRead = count != null ? count.IsRead : false
+                                               }).ToListAsync();
+            return usersWithMessageCount;
         }
 
 

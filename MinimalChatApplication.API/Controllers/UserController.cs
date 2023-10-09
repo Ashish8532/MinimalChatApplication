@@ -199,25 +199,19 @@ namespace MinimalChatApplication.API.Controllers
 
                 if (users != null && users.Any())
                 {
-                    var userDtos = users.Select(user => new UserResponseDto
-                    {
-                        UserId = user.Id,
-                        Name = user.Name,
-                        Email = user.Email
-                    }).ToList();
 
                     return Ok(new ApiResponse<IEnumerable<UserResponseDto>>
                     {
                         StatusCode = StatusCodes.Status200OK,
                         Message = "User list retrieved successfully",
-                        Data = userDtos
+                        Data = users
                     });
                 }
                 else
                 {
-                    return Ok(new ApiResponse<object>
+                    return NotFound(new ApiResponse<object>
                     {
-                        StatusCode = StatusCodes.Status200OK,
+                        StatusCode = StatusCodes.Status404NotFound,
                         Message = "No users found",
                         Data = null
                     });
@@ -284,6 +278,9 @@ namespace MinimalChatApplication.API.Controllers
                     if (result.success)
                     {
                         var user = await _userService.GetUserByEmailAsync(payload.Email);
+
+                        await _userService.UpdateUserStatusAsync(user.Id, true);
+
                         var jwtToken = _userService.GenerateJwtToken(user);
                         var refreshToken = _userService.GenerateRefreshToken();
 
@@ -320,6 +317,8 @@ namespace MinimalChatApplication.API.Controllers
                 else
                 {
                     var user = await _userService.GetUserByEmailAsync(payload.Email);
+
+                    await _userService.UpdateUserStatusAsync(user.Id, true);
                     var jwtToken = _userService.GenerateJwtToken(user);
                     var refreshToken = _userService.GenerateRefreshToken();
 
@@ -428,7 +427,7 @@ namespace MinimalChatApplication.API.Controllers
                 });
             }
 
-            var result = await _userService.UpdateUserStatusAsync(userId);
+            var result = await _userService.UpdateUserStatusAsync(userId, false);
             if (result.Success)
             {
 

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Domain.Models
 {
-    public class Message
+    public class UnreadMessageCount
     {
         [Key]
         public int Id { get; set; }
@@ -18,11 +18,8 @@ namespace MinimalChatApplication.Domain.Models
         public string ReceiverId { get; set; }
         public ChatApplicationUser Receiver { get; set; }
 
-        [Required]
-        public string Content { get; set; }
+        public int MessageCount { get; set; }
 
-        public DateTime Timestamp { get; set; }
-
+        public bool IsRead { get; set; }
     }
-
 }

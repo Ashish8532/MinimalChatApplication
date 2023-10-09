@@ -68,6 +68,7 @@ namespace MinimalChatApplication.API.Controllers
                 var messageId = await _messageService.SendMessageAsync(messageDto, senderId);
                 if (messageId != null)
                 {
+                    var result = await _messageService.UpsertReceiverMessageCount(senderId, messageDto.ReceiverId);
                     var messageResponseDto = new MessageResponseDto
                     {
                         MessageId = messageId,
@@ -79,6 +80,9 @@ namespace MinimalChatApplication.API.Controllers
 
                     // Broadcasts a new message to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveMessage", messageResponseDto);
+
+                    // Broadcasts status to all connected clients using SignalR.
+                    await _chatHub.Clients.All.SendAsync("UpdateMessageCount", result.MessageCount, result.IsRead);
 
                     return Ok(new ApiResponse<MessageResponseDto>
                     {
@@ -291,8 +295,12 @@ namespace MinimalChatApplication.API.Controllers
                     });
                 }
 
+                var result = await _messageService.UpsertSenderMessageCount(loggedInUserId, userId.ToString());
+
                 // Broadcasts status to all connected clients using SignalR.
                 await _chatHub.Clients.All.SendAsync("UpdateStatus", userStatus);
+
+
                 return Ok(new 
                 {
                     StatusCode = StatusCodes.Status200OK,

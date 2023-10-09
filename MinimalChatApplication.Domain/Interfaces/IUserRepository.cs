@@ -1,4 +1,5 @@
-﻿using MinimalChatApplication.Domain.Models;
+﻿using MinimalChatApplication.Domain.Dtos;
+using MinimalChatApplication.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +22,7 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// This method queries the database to retrieve all users except the one identified by the provided currentUserId. 
         /// If currentUserId is null, it returns all users available in the database.
         /// </remarks>
-        Task<IEnumerable<ChatApplicationUser>> GetUsers(string currentUserId);
+        Task<IEnumerable<UserResponseDto>> GetUsers(string currentUserId);
 
 
         Task<bool> GetUserStatusAsync(string userId);
