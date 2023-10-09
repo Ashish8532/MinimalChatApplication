@@ -10,15 +10,22 @@ namespace MinimalChatApplication.Data.Services
     {
         private readonly IMessageRepository _messageRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IUnreadMessageRepository _unreadMessageRepository;
+        private readonly UserManager<ChatApplicationUser> _userManager;
 
         /// <summary>
         /// Initializes a new instance of the MessageService class.
         /// </summary>
         /// <param name="messageRepository">The repository responsible for message data access.</param>
-        public MessageService(IMessageRepository messageRepository, IUserRepository userRepository)
+        public MessageService(IMessageRepository messageRepository, 
+            IUserRepository userRepository,
+            UserManager<ChatApplicationUser> userManager,
+            IUnreadMessageRepository unreadMessageRepository)
         {
             _messageRepository = messageRepository;
             _userRepository = userRepository;
+            _userManager = userManager;
+            _unreadMessageRepository = unreadMessageRepository;
         }
 
 
@@ -42,6 +49,7 @@ namespace MinimalChatApplication.Data.Services
                     ReceiverId = messageDto.ReceiverId,
                     Timestamp = DateTime.Now,
                 };
+
                 var data = await _messageRepository.AddAsync(message);
                 await _messageRepository.SaveChangesAsync();
                 return data.Id;
@@ -168,5 +176,104 @@ namespace MinimalChatApplication.Data.Services
 
             return messageResponseDtos;
         }
+
+
+        public async Task<UserResponseDto> UpsertReceiverMessageCount(string senderId, string receiverId)
+        {
+            // Check if UnreadMessageCount entry exists for the sender and receiver
+            var unreadMessageCount = await _unreadMessageRepository.GetReceiverMessageCount(senderId, receiverId);
+            var receiver = await _userManager.FindByIdAsync(receiverId);
+            UserResponseDto userResponseDto;
+
+            if (unreadMessageCount == null)
+            {
+                // Create a new UnreadMessageCount entry if it doesn't exist
+                unreadMessageCount = new UnreadMessageCount
+                {
+                    SenderId = senderId,
+                    ReceiverId = receiverId,
+                    MessageCount = 1,
+                    IsRead = false
+                };
+
+                if (receiver != null)
+                {
+                    if (receiver.IsActive == false)
+                    {
+                        unreadMessageCount.IsRead = false;
+                    }
+                    else
+                    {
+                        unreadMessageCount.IsRead = false;
+                    }
+                }
+
+                userResponseDto = new UserResponseDto
+                {
+                    MessageCount = unreadMessageCount.MessageCount,
+                    IsRead = unreadMessageCount.IsRead
+                };
+
+                await _unreadMessageRepository.AddAsync(unreadMessageCount);
+                await _unreadMessageRepository.SaveChangesAsync();
+                return userResponseDto;
+            }
+            else
+            {
+                if (receiver != null)
+                {
+                    if (receiver.IsActive == false)
+                    {
+                        unreadMessageCount.IsRead = false;
+                    }
+                    else
+                    {
+                        unreadMessageCount.IsRead = false;
+                    }
+                }
+                // Increment the count if the entry already exists
+                unreadMessageCount.MessageCount++;
+                _unreadMessageRepository.Update(unreadMessageCount);
+
+                userResponseDto = new UserResponseDto
+                {
+                    MessageCount = unreadMessageCount.MessageCount,
+                    IsRead = unreadMessageCount.IsRead
+                };
+                await _unreadMessageRepository.SaveChangesAsync();
+                return userResponseDto;
+            }
+        }
+
+
+        public async Task<UserResponseDto> UpsertSenderMessageCount(string senderId, string receiverId)
+        {
+            var unreadMessageCount = await _unreadMessageRepository.GetSenderMessageCount(senderId, receiverId);
+            var sender = await _userManager.FindByIdAsync(senderId);
+
+            if (unreadMessageCount != null)
+            {
+                if (sender != null)
+                {
+                    unreadMessageCount.MessageCount = 0;
+                    unreadMessageCount.IsRead = true;
+                }
+
+                _unreadMessageRepository.Update(unreadMessageCount);
+                await _unreadMessageRepository.SaveChangesAsync();
+
+                // Create and return the DTO with updated values
+                var userResponseDto = new UserResponseDto
+                {
+                    MessageCount = unreadMessageCount.MessageCount,
+                    IsRead = unreadMessageCount.IsRead
+                };
+
+                return userResponseDto;
+            }
+
+            return null;
+        }
+
     }
 }

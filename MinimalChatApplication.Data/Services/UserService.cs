@@ -108,7 +108,7 @@ namespace MinimalChatApplication.Data.Services
 
             if (user == null)
             {
-                return (false, StatusCodes.Status401Unauthorized, "Login failed due to incorrect credentials");
+                return (false, StatusCodes.Status400BadRequest, "Login failed due to incorrect credentials");
             }
 
            
@@ -128,7 +128,7 @@ namespace MinimalChatApplication.Data.Services
             }
             else
             {
-                return (false, StatusCodes.Status401Unauthorized, "Login failed due to incorrect credentials");
+                return (false, StatusCodes.Status400BadRequest, "Login failed due to incorrect credentials");
             }
         }
 
@@ -262,13 +262,13 @@ namespace MinimalChatApplication.Data.Services
         ///</summary>
         ///<param name="currentUserId">The unique identifier of the current user.</param>
         ///<returns>A collection of user entities excluding the current user.</returns>
-        public async Task<IEnumerable<ChatApplicationUser>> GetUsersExceptCurrentUserAsync(string currentUserId)
+        public async Task<IEnumerable<UserResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId)
         {
             return await _userRepository.GetUsers(currentUserId);
         }
 
 
-        public async Task<(bool Success, int StatusCode, string Message)> UpdateUserStatusAsync(string loggedInUserId)
+        public async Task<(bool Success, int StatusCode, string Message)> UpdateUserStatusAsync(string loggedInUserId, bool status)
         {
             try
             {
@@ -278,16 +278,23 @@ namespace MinimalChatApplication.Data.Services
                 {
                     return (false, StatusCodes.Status404NotFound, "Current user not found");
                 }
-
-                user.IsActive = false;
+                else
+                {
+                    if(status == true)
+                    {
+                        user.IsActive = true;
+                    }
+                    else
+                    {
+                        user.IsActive = false;
+                    }
+                }
                 var updateResult = await _userManager.UpdateAsync(user);
 
                 if (!updateResult.Succeeded)
                 {
                     return (false, StatusCodes.Status400BadRequest, "Failed to update user status");
                 }
-
-               
 
                 return (true, StatusCodes.Status200OK, "User statuses updated successfully");
             }

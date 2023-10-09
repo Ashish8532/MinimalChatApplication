@@ -215,9 +215,6 @@ namespace MinimalChatApplication.Data.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<int>("UnreadMessageCount")
-                        .HasColumnType("int");
-
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -272,9 +269,6 @@ namespace MinimalChatApplication.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
                     b.Property<string>("ReceiverId")
                         .HasColumnType("nvarchar(450)");
 
@@ -291,6 +285,37 @@ namespace MinimalChatApplication.Data.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("MinimalChatApplication.Domain.Models.UnreadMessageCount", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MessageCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReceiverId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SenderId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceiverId");
+
+                    b.HasIndex("SenderId", "ReceiverId")
+                        .IsUnique()
+                        .HasFilter("[SenderId] IS NOT NULL AND [ReceiverId] IS NOT NULL");
+
+                    b.ToTable("UnreadMessageCounts");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -361,11 +386,32 @@ namespace MinimalChatApplication.Data.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("MinimalChatApplication.Domain.Models.UnreadMessageCount", b =>
+                {
+                    b.HasOne("MinimalChatApplication.Domain.Models.ChatApplicationUser", "Receiver")
+                        .WithMany("ReceivedUnreadMessageCounts")
+                        .HasForeignKey("ReceiverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MinimalChatApplication.Domain.Models.ChatApplicationUser", "Sender")
+                        .WithMany("SentUnreadMessageCounts")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Receiver");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("MinimalChatApplication.Domain.Models.ChatApplicationUser", b =>
                 {
                     b.Navigation("ReceivedMessages");
 
+                    b.Navigation("ReceivedUnreadMessageCounts");
+
                     b.Navigation("SentMessages");
+
+                    b.Navigation("SentUnreadMessageCounts");
                 });
 #pragma warning restore 612, 618
         }

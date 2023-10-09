@@ -60,5 +60,11 @@ namespace MinimalChatApplication.Domain.Interfaces
         ///<param name="query">The string to search for in conversation messages.</param>
         ///<returns>A collection of MessageResponseDto representing the search results.</returns>
         Task<IEnumerable<MessageResponseDto>> SearchConversationsAsync(string userId, string query);
+
+
+        Task<UserResponseDto> UpsertReceiverMessageCount(string senderId, string receiverId);
+        Task<UserResponseDto> UpsertSenderMessageCount(string senderId, string receiverId);
+
+        
     }
 }

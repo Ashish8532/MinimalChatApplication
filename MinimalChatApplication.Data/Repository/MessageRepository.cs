@@ -81,5 +81,6 @@ namespace MinimalChatApplication.Data.Repository
 
             return queryResult;
         }
+
     }
 }
