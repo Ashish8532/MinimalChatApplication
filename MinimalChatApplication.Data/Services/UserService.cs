@@ -111,19 +111,10 @@ namespace MinimalChatApplication.Data.Services
                 return (false, StatusCodes.Status400BadRequest, "Login failed due to incorrect credentials");
             }
 
-           
-
             var result = await _signInManager.PasswordSignInAsync(user, password, isPersistent: false, lockoutOnFailure: false);
 
             if (result.Succeeded)
             {
-                user.IsActive = true;
-                var updateResult = await _userManager.UpdateAsync(user);
-
-                if (!updateResult.Succeeded)
-                {
-                    return (false, StatusCodes.Status400BadRequest, "Failed to update user status");
-                }
                 return (true, StatusCodes.Status200OK, "Login successful");
             }
             else

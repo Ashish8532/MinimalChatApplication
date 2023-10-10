@@ -44,9 +44,9 @@ namespace MinimalChatApplication.API.Hubs
             await Clients.All.SendAsync("UpdateStatus", status);
         }
 
-        public async Task IsRead(int messageCount, bool isRead)
+        public async Task UpdateMessageCountAndStatus(int messageCount, bool isRead, string userId)
         {
-            await Clients.All.SendAsync("UpdateMessageCount", messageCount, isRead);
+            await Clients.All.SendAsync("UpdateMessageCount", messageCount, isRead, userId);
         }
     }
 }

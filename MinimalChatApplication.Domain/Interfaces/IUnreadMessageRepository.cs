@@ -19,7 +19,7 @@ namespace MinimalChatApplication.Domain.Interfaces
         ///</remarks>
         Task SaveChangesAsync();
 
-        Task<UnreadMessageCount> GetReceiverMessageCount(string senderId, string receiverId);
-        Task<UnreadMessageCount> GetSenderMessageCount(string senderId, string receiverId);
+        Task<UnreadMessageCount> GetReceiverMessageChat(string senderId, string receiverId);
+        Task<UnreadMessageCount> GetSenderMessageChat(string senderId, string receiverId);
     }
 }

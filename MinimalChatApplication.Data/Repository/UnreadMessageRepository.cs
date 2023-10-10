@@ -30,16 +30,16 @@ namespace MinimalChatApplication.Data.Repository
             await _context.SaveChangesAsync();
         }
 
-        public async Task<UnreadMessageCount> GetReceiverMessageCount(string senderId, string receiverId)
-        {
-            return await _context.UnreadMessageCounts
-                 .FirstOrDefaultAsync(x => x.SenderId == senderId && x.ReceiverId == receiverId);
-        }
-
-        public async Task<UnreadMessageCount> GetSenderMessageCount(string senderId, string receiverId)
+        public async Task<UnreadMessageCount> GetReceiverMessageChat(string senderId, string receiverId)
         {
             return await _context.UnreadMessageCounts
                  .FirstOrDefaultAsync(x => x.SenderId == receiverId && x.ReceiverId == senderId);
+        }
+
+        public async Task<UnreadMessageCount> GetSenderMessageChat(string senderId, string receiverId)
+        {
+            return await _context.UnreadMessageCounts
+                 .FirstOrDefaultAsync(x => x.SenderId == senderId && x.ReceiverId == receiverId);
         }
     }
 }

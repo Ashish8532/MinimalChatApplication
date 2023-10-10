@@ -135,12 +135,11 @@ namespace MinimalChatApplication.Data.Services
         /// <param name="count">The number of messages to retrieve.</param>
         /// <param name="sort">The sorting mechanism for messages (asc or desc).</param>
         /// <returns>An IEnumerable of MessageResponseDto containing conversation history.</returns>
-        public async Task<(IEnumerable<MessageResponseDto>, bool status)> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
+        public async Task<IEnumerable<MessageResponseDto>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
         {
             var conversationHistory = await _messageRepository
                 .GetConversationHistoryAsync(loggedInUserId, receiverId, before, count, sort);
 
-            var userStatus = await _userRepository.GetUserStatusAsync(receiverId);
 
             var messageResponseDtos = conversationHistory.Select(message => new MessageResponseDto
             {
@@ -151,7 +150,7 @@ namespace MinimalChatApplication.Data.Services
                 Timestamp = message.Timestamp
             }).ToList();
 
-            return (messageResponseDtos, userStatus);
+            return messageResponseDtos;
         }
 
 
@@ -178,17 +177,63 @@ namespace MinimalChatApplication.Data.Services
         }
 
 
-        public async Task<UserResponseDto> UpsertReceiverMessageCount(string senderId, string receiverId)
+        public async Task<(bool Success, int StatusCode, string Message)> UpdateChatStatusAsync(string userId, string currentUserId, string previousUserId)
         {
-            // Check if UnreadMessageCount entry exists for the sender and receiver
-            var unreadMessageCount = await _unreadMessageRepository.GetReceiverMessageCount(senderId, receiverId);
+            try
+            {
+                if(string.IsNullOrEmpty(previousUserId) || previousUserId.ToLower() == "null" || previousUserId == "null")
+                {
+                    var chatExists = await _unreadMessageRepository.GetSenderMessageChat(userId, currentUserId);
+                    if (chatExists != null)
+                    {
+                        chatExists.IsRead = true;
+                        _unreadMessageRepository.Update(chatExists);
+                    }
+                    else
+                    {
+                        return (false, StatusCodes.Status404NotFound, "Chat not exists");
+                    }
+                }
+                else
+                {
+                    var chatExists = await _unreadMessageRepository.GetSenderMessageChat(userId, previousUserId);
+                    if(chatExists != null)
+                    {
+                        chatExists.IsRead = false;
+                        _unreadMessageRepository.Update(chatExists);
+                    }
+                    else
+                    {
+                        chatExists = await _unreadMessageRepository.GetSenderMessageChat(userId, currentUserId);
+                        if( chatExists != null )
+                        {
+                            chatExists.IsRead = true;
+                            _unreadMessageRepository.Update(chatExists);
+                        }
+                        return (false, StatusCodes.Status404NotFound, "Chat not exists");
+                    }
+                }
+                await _unreadMessageRepository.SaveChangesAsync();
+                return (true, StatusCodes.Status200OK, "Chat status updated.");
+                
+            }
+            catch (Exception ex)
+            {
+                // Log or handle exceptions
+                return (false, StatusCodes.Status500InternalServerError, "Internal server error");
+            }
+        }
+
+        public async Task<UserResponseDto> UpsertMessageCount(string senderId, string receiverId)
+        {
+            var receiverChatExists = await _unreadMessageRepository.GetReceiverMessageChat(senderId, receiverId);
             var receiver = await _userManager.FindByIdAsync(receiverId);
             UserResponseDto userResponseDto;
 
-            if (unreadMessageCount == null)
+            if (receiverChatExists == null)
             {
                 // Create a new UnreadMessageCount entry if it doesn't exist
-                unreadMessageCount = new UnreadMessageCount
+                receiverChatExists = new UnreadMessageCount
                 {
                     SenderId = senderId,
                     ReceiverId = receiverId,
@@ -200,21 +245,23 @@ namespace MinimalChatApplication.Data.Services
                 {
                     if (receiver.IsActive == false)
                     {
-                        unreadMessageCount.IsRead = false;
+                        receiverChatExists.IsRead = false;
                     }
                     else
                     {
-                        unreadMessageCount.IsRead = false;
+                        receiverChatExists.MessageCount = 0;
+                        receiverChatExists.IsRead = true;
                     }
                 }
 
                 userResponseDto = new UserResponseDto
                 {
-                    MessageCount = unreadMessageCount.MessageCount,
-                    IsRead = unreadMessageCount.IsRead
+                    UserId = senderId,
+                    MessageCount = receiverChatExists.MessageCount,
+                    IsRead = receiverChatExists.IsRead
                 };
 
-                await _unreadMessageRepository.AddAsync(unreadMessageCount);
+                await _unreadMessageRepository.AddAsync(receiverChatExists);
                 await _unreadMessageRepository.SaveChangesAsync();
                 return userResponseDto;
             }
@@ -224,21 +271,24 @@ namespace MinimalChatApplication.Data.Services
                 {
                     if (receiver.IsActive == false)
                     {
-                        unreadMessageCount.IsRead = false;
+                        receiverChatExists.MessageCount++;
+                        receiverChatExists.IsRead = false;
                     }
                     else
                     {
-                        unreadMessageCount.IsRead = false;
+                        receiverChatExists.MessageCount = 0;
+                        receiverChatExists.IsRead = true;
                     }
                 }
                 // Increment the count if the entry already exists
-                unreadMessageCount.MessageCount++;
-                _unreadMessageRepository.Update(unreadMessageCount);
+                
+                _unreadMessageRepository.Update(receiverChatExists);
 
                 userResponseDto = new UserResponseDto
                 {
-                    MessageCount = unreadMessageCount.MessageCount,
-                    IsRead = unreadMessageCount.IsRead
+                    UserId = senderId,
+                    MessageCount = receiverChatExists.MessageCount,
+                    IsRead = receiverChatExists.IsRead
                 };
                 await _unreadMessageRepository.SaveChangesAsync();
                 return userResponseDto;
@@ -246,27 +296,28 @@ namespace MinimalChatApplication.Data.Services
         }
 
 
-        public async Task<UserResponseDto> UpsertSenderMessageCount(string senderId, string receiverId)
+        public async Task<UserResponseDto> UpdateSenderMessageCount(string senderId, string receiverId)
         {
-            var unreadMessageCount = await _unreadMessageRepository.GetSenderMessageCount(senderId, receiverId);
+            var unreadMessageChatExists = await _unreadMessageRepository.GetSenderMessageChat(senderId, receiverId);
             var sender = await _userManager.FindByIdAsync(senderId);
 
-            if (unreadMessageCount != null)
+            if (unreadMessageChatExists != null)
             {
                 if (sender != null)
                 {
-                    unreadMessageCount.MessageCount = 0;
-                    unreadMessageCount.IsRead = true;
+                    unreadMessageChatExists.MessageCount = 0;
+                    unreadMessageChatExists.IsRead = true;
                 }
 
-                _unreadMessageRepository.Update(unreadMessageCount);
+                _unreadMessageRepository.Update(unreadMessageChatExists);
                 await _unreadMessageRepository.SaveChangesAsync();
 
                 // Create and return the DTO with updated values
                 var userResponseDto = new UserResponseDto
                 {
-                    MessageCount = unreadMessageCount.MessageCount,
-                    IsRead = unreadMessageCount.IsRead
+                    UserId = senderId,
+                    MessageCount = unreadMessageChatExists.MessageCount,
+                    IsRead = unreadMessageChatExists.IsRead
                 };
 
                 return userResponseDto;

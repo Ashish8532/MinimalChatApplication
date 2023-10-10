@@ -50,7 +50,7 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <param name="count">The number of messages to retrieve.</param>
         /// <param name="sort">The sorting mechanism for messages (asc or desc).</param>
         /// <returns>An IEnumerable of MessageResponseDto containing conversation history.</returns>
-        Task<(IEnumerable<MessageResponseDto>, bool status)> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort);
+        Task<IEnumerable<MessageResponseDto>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort);
 
 
         ///<summary>
@@ -62,8 +62,10 @@ namespace MinimalChatApplication.Domain.Interfaces
         Task<IEnumerable<MessageResponseDto>> SearchConversationsAsync(string userId, string query);
 
 
-        Task<UserResponseDto> UpsertReceiverMessageCount(string senderId, string receiverId);
-        Task<UserResponseDto> UpsertSenderMessageCount(string senderId, string receiverId);
+
+        Task<(bool Success, int StatusCode, string Message)> UpdateChatStatusAsync(string userId, string currentUserId, string previousUserId);
+        Task<UserResponseDto> UpsertMessageCount(string senderId, string receiverId);
+        Task<UserResponseDto> UpdateSenderMessageCount(string senderId, string receiverId);
 
         
     }

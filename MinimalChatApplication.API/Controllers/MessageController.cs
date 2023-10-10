@@ -68,7 +68,7 @@ namespace MinimalChatApplication.API.Controllers
                 var messageId = await _messageService.SendMessageAsync(messageDto, senderId);
                 if (messageId != null)
                 {
-                    var result = await _messageService.UpsertReceiverMessageCount(senderId, messageDto.ReceiverId);
+                    var result = await _messageService.UpsertMessageCount(senderId, messageDto.ReceiverId);
                     var messageResponseDto = new MessageResponseDto
                     {
                         MessageId = messageId,
@@ -82,7 +82,7 @@ namespace MinimalChatApplication.API.Controllers
                     await _chatHub.Clients.All.SendAsync("ReceiveMessage", messageResponseDto);
 
                     // Broadcasts status to all connected clients using SignalR.
-                    await _chatHub.Clients.All.SendAsync("UpdateMessageCount", result.MessageCount, result.IsRead);
+                    await _chatHub.Clients.All.SendAsync("UpdateMessageCount", result.MessageCount, result.IsRead, senderId);
 
                     return Ok(new ApiResponse<MessageResponseDto>
                     {
@@ -282,33 +282,32 @@ namespace MinimalChatApplication.API.Controllers
                 }
 
                 // Call the service method to retrieve conversation history
-                var (conversationHistory, userStatus) = await _messageService.GetConversationHistoryAsync(
+                var conversationHistory = await _messageService.GetConversationHistoryAsync(
                        loggedInUserId, userId.ToString(), before, count, sort);
 
-                if (conversationHistory == null || !conversationHistory.Any())
+                if (conversationHistory != null || conversationHistory.Any())
                 {
-                    return NotFound(new ApiResponse<object>
+                    //var result = await _messageService.UpdateSenderMessageCount(loggedInUserId, userId.ToString());
+
+                    // Broadcasts status to all connected clients using SignalR.
+                   // await _chatHub.Clients.All.SendAsync("UpdateStatus", userStatus);
+
+                    return Ok(new
                     {
-                        StatusCode = StatusCodes.Status404NotFound,
-                        Message = "Conversation not found",
-                        Data = null
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = "Conversation history retrieved successfully",
+                        Data = conversationHistory,
+
                     });
+
                 }
-
-                var result = await _messageService.UpsertSenderMessageCount(loggedInUserId, userId.ToString());
-
-                // Broadcasts status to all connected clients using SignalR.
-                await _chatHub.Clients.All.SendAsync("UpdateStatus", userStatus);
-
-
-                return Ok(new 
+                return NotFound(new ApiResponse<object>
                 {
-                    StatusCode = StatusCodes.Status200OK,
-                    Message = "Conversation history retrieved successfully",
-                    Data = conversationHistory,
-                    IsActive = userStatus
-
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Message = "Conversation not found",
+                    Data = null
                 });
+
             }
             catch (Exception ex)
             {
@@ -323,5 +322,73 @@ namespace MinimalChatApplication.API.Controllers
         }
 
         #endregion Retrieve Conversation History
+
+
+
+        [HttpPost("chat-status")]
+        public async Task<IActionResult> UpdateChatStatus([FromQuery] string currentUserId, [FromQuery] string? previousUserId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+            {
+                return Unauthorized(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status401Unauthorized,
+                    Message = "Unauthorized access",
+                    Data = null
+                });
+            }
+
+            if (previousUserId == null)
+            {
+
+            }
+
+            var result = await _messageService.UpdateChatStatusAsync(userId, currentUserId, previousUserId);
+            if (result.Success)
+            {
+
+                return Ok(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = result.Message,
+                    Data = null
+                });
+            }
+            else
+            {
+                switch (result.StatusCode)
+                {
+                    case StatusCodes.Status404NotFound:
+                        return NotFound(new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                    case StatusCodes.Status400BadRequest:
+                        return BadRequest(new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                    case StatusCodes.Status500InternalServerError:
+                        return StatusCode(500, new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                    default:
+                        return StatusCode(500, new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                }
+            }
+        }
     }
 }
