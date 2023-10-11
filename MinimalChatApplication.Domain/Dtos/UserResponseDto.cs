@@ -13,5 +13,7 @@ namespace MinimalChatApplication.Domain.Dtos
         public string Email { get; set; }
         public int MessageCount { get; set; }
         public bool IsRead { get; set; }
+
+        public bool IsLoggedIn { get; set; }
     }
 }

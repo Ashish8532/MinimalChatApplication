@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MinimalChatApplication.API.Hubs;
+using MinimalChatApplication.Data.Services;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
@@ -17,22 +18,16 @@ namespace MinimalChatApplication.API.Controllers
     {
         private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
-        private readonly SignInManager<ChatApplicationUser> _signInManager;
         private readonly IHubContext<ChatHub> _chatHub;
+        private readonly IMessageService _messageService;
 
-        /// <summary>
-        /// Initializes a new instance of the UserController class.
-        /// </summary>
-        /// <param name="userService">The service responsible for user-related operations.</param>
         public UserController(IUserService userService, IConfiguration configuration,
-            SignInManager<ChatApplicationUser> signInManager,
-            IHubContext<ChatHub> chatHub)
+            IHubContext<ChatHub> chatHub, IMessageService messageService)
         {
             _userService = userService;
             _configuration = configuration;
-            _signInManager = signInManager;
             _chatHub = chatHub;
-
+            _messageService = messageService;
         }
 
         /// <summary>
@@ -128,6 +123,9 @@ namespace MinimalChatApplication.API.Controllers
                     var refreshTokenValidityInDays = DateTime.Now.AddDays(Convert.ToInt32(_configuration["JWT:RefreshTokenValidityInDays"]));
 
                     await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
+                 
+                    // Broadcasts status to all connected clients using SignalR.
+                    await _chatHub.Clients.All.SendAsync("UpdateStatus", true);
 
                     return Ok(new
                     {
@@ -194,10 +192,11 @@ namespace MinimalChatApplication.API.Controllers
                 }
 
                 var users = await _userService.GetUsersExceptCurrentUserAsync(userId);
+                
 
                 if (users != null && users.Any())
                 {
-
+                    await _messageService.UpdateChatStatusAsync(userId, null, null);
                     return Ok(new ApiResponse<IEnumerable<UserResponseDto>>
                     {
                         StatusCode = StatusCodes.Status200OK,
@@ -286,6 +285,9 @@ namespace MinimalChatApplication.API.Controllers
 
                         await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
 
+                        // Broadcasts status to all connected clients using SignalR.
+                        await _chatHub.Clients.All.SendAsync("UpdateStatus", true);
+
                         return Ok(new
                         {
                             message = "User login Successfull.",
@@ -321,6 +323,9 @@ namespace MinimalChatApplication.API.Controllers
                     var refreshTokenValidityInDays = DateTime.Now.AddDays(Convert.ToInt32(_configuration["JWT:RefreshTokenValidityInDays"]));
 
                     await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
+
+                    // Broadcasts status to all connected clients using SignalR.
+                    await _chatHub.Clients.All.SendAsync("UpdateStatus", true);
 
                     return Ok(new
                     {
@@ -406,6 +411,17 @@ namespace MinimalChatApplication.API.Controllers
         }
 
 
+        /// <summary>
+        /// Updates the status of the authenticated user and broadcasts the status to all connected clients using SignalR.
+        /// </summary>
+        /// <returns>
+        /// An IActionResult containing the result of the user status update.
+        /// </returns>
+        /// <remarks>
+        /// This method is protected by the [Authorize] attribute and can only be accessed by authenticated users.
+        /// It retrieves the unique identifier of the current user and updates the user status using the UserService.
+        /// If the update is successful, it also updates the chat status and broadcasts the new status to connected clients.
+        /// </remarks>
         [Authorize]
         [HttpPost("status")]
         public async Task<IActionResult> UpdateUserStatus()
@@ -424,6 +440,10 @@ namespace MinimalChatApplication.API.Controllers
             var result = await _userService.UpdateUserStatusAsync(userId, false);
             if (result.Success)
             {
+                await _messageService.UpdateChatStatusAsync(userId, null, null);
+
+                // Broadcasts status to all connected clients using SignalR.
+                await _chatHub.Clients.All.SendAsync("UpdateStatus", false);
 
                 return Ok(new ApiResponse<object>
                 {

@@ -30,16 +30,51 @@ namespace MinimalChatApplication.Data.Repository
             await _context.SaveChangesAsync();
         }
 
+
+        /// <summary>
+        /// Asynchronously retrieves the chat record for the receiver-user and sender-user from the UnreadMessageCounts table.
+        /// </summary>
+        /// <param name="senderId">The ID of the sender user.</param>
+        /// <param name="receiverId">The ID of the receiver user.</param>
+        /// <returns>
+        /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
+        /// representing the chat record between the receiver-user and sender-user.
+        /// </returns>
         public async Task<UnreadMessageCount> GetReceiverMessageChat(string senderId, string receiverId)
         {
             return await _context.UnreadMessageCounts
                  .FirstOrDefaultAsync(x => x.SenderId == receiverId && x.ReceiverId == senderId);
         }
 
+
+        /// <summary>
+        /// Asynchronously retrieves the chat record for the sender-user and receiver-user from the UnreadMessageCounts table.
+        /// </summary>
+        /// <param name="senderId">The ID of the sender user.</param>
+        /// <param name="receiverId">The ID of the receiver user.</param>
+        /// <returns>
+        /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
+        /// representing the chat record between the sender-user and receiver-user.
+        /// </returns>
         public async Task<UnreadMessageCount> GetSenderMessageChat(string senderId, string receiverId)
         {
             return await _context.UnreadMessageCounts
                  .FirstOrDefaultAsync(x => x.SenderId == senderId && x.ReceiverId == receiverId);
+        }
+
+
+        /// <summary>
+        /// Asynchronously retrieves the chat record for the logged-in user from the UnreadMessageCounts table.
+        /// </summary>
+        /// <param name="userId">The ID of the logged-in user.</param>
+        /// <returns>
+        /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
+        /// representing the chat record for the logged-in user.
+        /// </returns>
+        public async Task<UnreadMessageCount> GetLoggedInUserChat(string userId)
+        {
+            return await _context.UnreadMessageCounts
+                 .FirstOrDefaultAsync(x => x.SenderId == userId);
         }
     }
 }

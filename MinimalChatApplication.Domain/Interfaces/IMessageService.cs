@@ -41,6 +41,7 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// </returns>
         Task<(bool success, int StatusCode, string message)> DeleteMessageAsync(int messageId, string userId);
 
+
         /// <summary>
         /// Retrieves the conversation history between the logged-in user and a specific receiver user.
         /// </summary>
@@ -49,8 +50,11 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <param name="before">Optional timestamp to filter messages before a specific time.</param>
         /// <param name="count">The number of messages to retrieve.</param>
         /// <param name="sort">The sorting mechanism for messages (asc or desc).</param>
-        /// <returns>An IEnumerable of MessageResponseDto containing conversation history.</returns>
-        Task<IEnumerable<MessageResponseDto>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort);
+        /// <returns>
+        /// A tuple containing an IEnumerable of MessageResponseDto representing the conversation history
+        /// and a boolean indicating the status of the receiver user (active or inactive).
+        /// </returns>
+        Task<(IEnumerable<MessageResponseDto>, bool status)> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort);
 
 
         ///<summary>
@@ -62,11 +66,26 @@ namespace MinimalChatApplication.Domain.Interfaces
         Task<IEnumerable<MessageResponseDto>> SearchConversationsAsync(string userId, string query);
 
 
-
+        /// <summary>
+        /// Asynchronously updates the chat status for a user, marking messages as read and managing unread message counts.
+        /// </summary>
+        /// <param name="userId">The ID of the user for whom the chat status is being updated.</param>
+        /// <param name="currentUserId">The ID of the currently active user.</param>
+        /// <param name="previousUserId">The ID of the previously active user (optional).</param>
+        /// <returns>
+        /// A tuple containing the success status, HTTP status code, and a message describing the outcome of the chat status update.
+        /// </returns>
         Task<(bool Success, int StatusCode, string Message)> UpdateChatStatusAsync(string userId, string currentUserId, string previousUserId);
-        Task<UserResponseDto> UpsertMessageCount(string senderId, string receiverId);
-        Task<UserResponseDto> UpdateSenderMessageCount(string senderId, string receiverId);
 
-        
+
+        /// <summary>
+        /// Asynchronously updates the message count and read status for the receiver user in the unread message repository.
+        /// </summary>
+        /// <param name="senderId">The ID of the sender user.</param>
+        /// <param name="receiverId">The ID of the receiver user.</param>
+        /// <returns>
+        /// A UserResponseDto containing the updated message count, read status, and logged-in status of the receiver user.
+        /// </returns>
+        Task<UserResponseDto> UpdateMessageCount(string senderId, string receiverId);
     }
 }

@@ -93,13 +93,14 @@ namespace MinimalChatApplication.Data.Services
 
 
         /// <summary>
-        /// Performs user login asynchronously.
+        /// Asynchronously performs user login with the provided email and password.
         /// </summary>
         /// <param name="email">The email address of the user attempting to log in.</param>
         /// <param name="password">The user's password for authentication.</param>
         /// <returns>
         /// A tuple containing the login status and a message indicating the result.
         /// - Succeeded (bool): True if the login is successful; otherwise, false.
+        /// - StatusCode (int): The HTTP status code indicating the outcome of the login attempt.
         /// - Message (string): A message providing details about the login outcome.
         /// </returns>
         public async Task<(bool Succeeded, int StatusCode, string Message)> LoginAsync(string email, string password)
@@ -115,6 +116,13 @@ namespace MinimalChatApplication.Data.Services
 
             if (result.Succeeded)
             {
+                user.IsActive = true;
+                var updateResult = await _userManager.UpdateAsync(user);
+
+                if (!updateResult.Succeeded)
+                {
+                    return (false, StatusCodes.Status400BadRequest, "Failed to update user status");
+                }
                 return (true, StatusCodes.Status200OK, "Login successful");
             }
             else
@@ -259,6 +267,15 @@ namespace MinimalChatApplication.Data.Services
         }
 
 
+        /// <summary>
+        /// Asynchronously updates the status of a user based on the provided user ID and status.
+        /// </summary>
+        /// <param name="loggedInUserId">The ID of the user whose status is being updated.</param>
+        /// <param name="status">The new status of the user (true for active, false for inactive).</param>
+        /// <returns>
+        /// A tuple containing a boolean indicating the success of the operation, the HTTP status code,
+        /// and a message describing the outcome of the user status update.
+        /// </returns>
         public async Task<(bool Success, int StatusCode, string Message)> UpdateUserStatusAsync(string loggedInUserId, bool status)
         {
             try
