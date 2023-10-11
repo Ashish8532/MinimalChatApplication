@@ -327,7 +327,7 @@ namespace MinimalChatApplication.Data.Services
             
             if(receiverChatExists != null)
             {
-                var receiverLoggedIn = await _userManager.FindByIdAsync(receiverChatExists.ReceiverId);
+                var receiverLoggedIn = await _userManager.FindByIdAsync(receiverChatExists.SenderId);
                 if(receiverLoggedIn != null)
                 {
                     if (receiverLoggedIn.IsActive && receiverChatExists.IsRead)

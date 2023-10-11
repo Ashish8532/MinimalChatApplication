@@ -289,9 +289,6 @@ namespace MinimalChatApplication.API.Controllers
 
                 if (conversationHistory != null || conversationHistory.Any())
                 {
-                    // Broadcasts status to all connected clients using SignalR.
-                    await _chatHub.Clients.All.SendAsync("UpdateStatus", userStatus);
-
                     return Ok(new
                     {
                         StatusCode = StatusCodes.Status200OK,
