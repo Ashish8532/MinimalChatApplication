@@ -94,6 +94,17 @@ namespace MinimalChatApplication.Domain.Interfaces
         ///<param name="currentUserId">The unique identifier of the current user.</param>
         ///<returns>A collection of user entities excluding the current user.</returns>
         Task<IEnumerable<UserResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId);
+
+
+        /// <summary>
+        /// Asynchronously updates the status of a user based on the provided user ID and status.
+        /// </summary>
+        /// <param name="loggedInUserId">The ID of the user whose status is being updated.</param>
+        /// <param name="status">The new status of the user (true for active, false for inactive).</param>
+        /// <returns>
+        /// A tuple containing a boolean indicating the success of the operation, the HTTP status code,
+        /// and a message describing the outcome of the user status update.
+        /// </returns>
         Task<(bool Success, int StatusCode, string Message)> UpdateUserStatusAsync(string loggedInUserId, bool status);
     }
 }

@@ -68,7 +68,7 @@ namespace MinimalChatApplication.API.Controllers
                 var messageId = await _messageService.SendMessageAsync(messageDto, senderId);
                 if (messageId != null)
                 {
-                    var result = await _messageService.UpsertReceiverMessageCount(senderId, messageDto.ReceiverId);
+                    var result = await _messageService.UpdateMessageCount(senderId, messageDto.ReceiverId);
                     var messageResponseDto = new MessageResponseDto
                     {
                         MessageId = messageId,
@@ -81,9 +81,11 @@ namespace MinimalChatApplication.API.Controllers
                     // Broadcasts a new message to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveMessage", messageResponseDto);
 
-                    // Broadcasts status to all connected clients using SignalR.
-                    await _chatHub.Clients.All.SendAsync("UpdateMessageCount", result.MessageCount, result.IsRead);
-
+                    if(result.IsLoggedIn)
+                    {
+                        // Broadcasts message count and chat status to all connected clients using SignalR.
+                        await _chatHub.Clients.All.SendAsync("UpdateMessageCount", result.MessageCount, result.IsRead, result.UserId);
+                    }
                     return Ok(new ApiResponse<MessageResponseDto>
                     {
                         StatusCode = StatusCodes.Status200OK,
@@ -241,7 +243,7 @@ namespace MinimalChatApplication.API.Controllers
         #region Retrieve Conversation History
 
         /// <summary>
-        /// Retrieves the conversation history between the logged-in user and a specific user based on query parameters.
+        /// Controller method for retrieving the conversation history between the logged-in user and a specific user based on query parameters.
         /// </summary>
         /// <param name="userId">The ID of the user to retrieve the conversation with.</param>
         /// <param name="before">Optional timestamp to filter messages before a specific time.</param>
@@ -285,30 +287,27 @@ namespace MinimalChatApplication.API.Controllers
                 var (conversationHistory, userStatus) = await _messageService.GetConversationHistoryAsync(
                        loggedInUserId, userId.ToString(), before, count, sort);
 
-                if (conversationHistory == null || !conversationHistory.Any())
+                if (conversationHistory != null || conversationHistory.Any())
                 {
-                    return NotFound(new ApiResponse<object>
+                    // Broadcasts status to all connected clients using SignalR.
+                    await _chatHub.Clients.All.SendAsync("UpdateStatus", userStatus);
+
+                    return Ok(new
                     {
-                        StatusCode = StatusCodes.Status404NotFound,
-                        Message = "Conversation not found",
-                        Data = null
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = "Conversation history retrieved successfully",
+                        Data = conversationHistory,
+                        IsActive = userStatus
                     });
+
                 }
-
-                var result = await _messageService.UpsertSenderMessageCount(loggedInUserId, userId.ToString());
-
-                // Broadcasts status to all connected clients using SignalR.
-                await _chatHub.Clients.All.SendAsync("UpdateStatus", userStatus);
-
-
-                return Ok(new 
+                return NotFound(new ApiResponse<object>
                 {
-                    StatusCode = StatusCodes.Status200OK,
-                    Message = "Conversation history retrieved successfully",
-                    Data = conversationHistory,
-                    IsActive = userStatus
-
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Message = "Conversation not found",
+                    Data = null
                 });
+
             }
             catch (Exception ex)
             {
@@ -323,5 +322,82 @@ namespace MinimalChatApplication.API.Controllers
         }
 
         #endregion Retrieve Conversation History
+
+
+        /// <summary>
+        /// Controller method for updating the chat status of the logged-in user.
+        /// </summary>
+        /// <param name="currentUserId">The ID of the user whose chat status is being updated.</param>
+        /// <param name="previousUserId">Optional ID of the previously active user.</param>
+        /// <returns>
+        /// Returns an IActionResult with a response indicating the status of the chat status update:
+        /// - 200 OK if the update is successful.
+        /// - 401 Unauthorized if the user is not authorized.
+        /// - 404 Not Found if the specified user or resource is not found.
+        /// - 400 Bad Request if there are validation errors.
+        /// - 500 Internal Server Error if an error occurs during processing.
+        /// </returns>
+        [HttpPost("chat-status")]
+        public async Task<IActionResult> UpdateChatStatus([FromQuery] string currentUserId, [FromQuery] string? previousUserId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+            {
+                return Unauthorized(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status401Unauthorized,
+                    Message = "Unauthorized access",
+                    Data = null
+                });
+            }
+
+            var result = await _messageService.UpdateChatStatusAsync(userId, currentUserId, previousUserId);
+            if (result.Success)
+            {
+                // Broadcasts message count and chat status to all connected clients using SignalR.
+                await _chatHub.Clients.All.SendAsync("UpdateMessageCount", 0, true, currentUserId);
+
+                return Ok(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = result.Message,
+                    Data = null
+                });
+            }
+            else
+            {
+                switch (result.StatusCode)
+                {
+                    case StatusCodes.Status404NotFound:
+                        return NotFound(new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                    case StatusCodes.Status400BadRequest:
+                        return BadRequest(new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                    case StatusCodes.Status500InternalServerError:
+                        return StatusCode(500, new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                    default:
+                        return StatusCode(500, new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status200OK,
+                            Message = result.Message,
+                            Data = null
+                        });
+                }
+            }
+        }
     }
 }
