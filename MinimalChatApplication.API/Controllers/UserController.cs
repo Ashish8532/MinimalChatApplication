@@ -125,7 +125,7 @@ namespace MinimalChatApplication.API.Controllers
                     await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
                  
                     // Broadcasts status to all connected clients using SignalR.
-                    await _chatHub.Clients.All.SendAsync("UpdateStatus", true);
+                    await _chatHub.Clients.All.SendAsync("UpdateStatus", true, user.Id);
 
                     return Ok(new
                     {
@@ -286,7 +286,7 @@ namespace MinimalChatApplication.API.Controllers
                         await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
 
                         // Broadcasts status to all connected clients using SignalR.
-                        await _chatHub.Clients.All.SendAsync("UpdateStatus", true);
+                        await _chatHub.Clients.All.SendAsync("UpdateStatus", true, user.Id);
 
                         return Ok(new
                         {
@@ -325,7 +325,7 @@ namespace MinimalChatApplication.API.Controllers
                     await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
 
                     // Broadcasts status to all connected clients using SignalR.
-                    await _chatHub.Clients.All.SendAsync("UpdateStatus", true);
+                    await _chatHub.Clients.All.SendAsync("UpdateStatus", true, user.Id);
 
                     return Ok(new
                     {
@@ -443,7 +443,7 @@ namespace MinimalChatApplication.API.Controllers
                 await _messageService.UpdateChatStatusAsync(userId, null, null);
 
                 // Broadcasts status to all connected clients using SignalR.
-                await _chatHub.Clients.All.SendAsync("UpdateStatus", false);
+                await _chatHub.Clients.All.SendAsync("UpdateStatus", false, userId);
 
                 return Ok(new ApiResponse<object>
                 {
