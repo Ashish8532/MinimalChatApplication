@@ -1,39 +1,38 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using MinimalChatApplication.Data.Context;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
-using MinimalChatApplication.Domain.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Data.Repository
 {
     public class UserRepository : IUserRepository
     {
         private readonly ChatApplicationDbContext _dbContext;
+        private readonly IMapper _mapper;
 
-        public UserRepository(ChatApplicationDbContext dbContext)
+        public UserRepository(ChatApplicationDbContext dbContext, IMapper mapper)
         {
             _dbContext = dbContext;
+            _mapper = mapper;
         }
+
 
         /// <summary>
         /// Retrieves a collection of users excluding the current user or all users if currentUserId is null.
         /// </summary>
         /// <param name="currentUserId">The unique identifier of the current user. Pass null to retrieve all users.</param>
         /// <returns>
-        /// A collection of UserResponseDto objects representing users, excluding the current user.
+        /// A collection of UserChatResponseDto objects representing users, excluding the current user.
         /// If currentUserId is null, it returns all users available in the database.
+        /// The returned users include additional information such as message count and read status.
         /// </returns>
         /// <remarks>
         /// This method queries the database to retrieve all users except the one identified by the provided currentUserId. 
         /// If currentUserId is null, it returns all users available in the database.
         /// The returned users include additional information such as message count and read status.
         /// </remarks>
-        public async Task<IEnumerable<UserResponseDto>> GetUsers(string currentUserId)
+        public async Task<IEnumerable<UserChatResponseDto>> GetUsers(string currentUserId)
         {
             var usersWithMessageCount = await (from user in _dbContext.Users
                                                where user.Id != currentUserId
@@ -42,15 +41,21 @@ namespace MinimalChatApplication.Data.Repository
                                                equals new { unreadMessageCount.SenderId, unreadMessageCount.ReceiverId }
                                                into counts
                                                from count in counts.DefaultIfEmpty()
-                                               select new UserResponseDto
+                                               select new
                                                {
-                                                   UserId = user.Id,
-                                                   Name = user.Name,
-                                                   Email = user.Email,
-                                                   MessageCount = count != null ? count.MessageCount : 0,
-                                                   IsRead = count != null ? count.IsRead : false
+                                                   User = user,
+                                                   UnreadMessageCount = count
                                                }).ToListAsync();
-            return usersWithMessageCount;
+
+            var userChatDtos = _mapper.Map<IEnumerable<UserChatResponseDto>>(usersWithMessageCount.Select(x => x.User));
+
+            foreach (var (userChatDto, count) in userChatDtos.Zip(usersWithMessageCount, (d, c) => (d, c.UnreadMessageCount)))
+            {
+                userChatDto.MessageCount = count?.MessageCount ?? 0;
+                userChatDto.IsRead = count?.IsRead ?? false;
+            }
+
+            return userChatDtos;
         }
 
 

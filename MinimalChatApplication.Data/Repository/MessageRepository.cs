@@ -48,7 +48,7 @@ namespace MinimalChatApplication.Data.Repository
 
             if (before.HasValue)
             {
-                query = query.Where(m => m.Timestamp <= before);
+                query = query.Where(m => m.Timestamp < before);
             }
 
             if (sort.Equals("desc", StringComparison.OrdinalIgnoreCase))
@@ -59,8 +59,8 @@ namespace MinimalChatApplication.Data.Repository
             {
                 query = query.OrderBy(m => m.Timestamp);
             }
-
             query = query.Take(count);
+            query = query.OrderBy(m => m.Id);
 
             return await query.ToListAsync();
         }

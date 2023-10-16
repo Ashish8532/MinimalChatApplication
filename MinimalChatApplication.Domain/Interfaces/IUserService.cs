@@ -89,11 +89,11 @@ namespace MinimalChatApplication.Domain.Interfaces
 
 
         ///<summary>
-        /// Asynchronously retrieves a list of users except the current user.
+        /// Asynchronously retrieves a list of users excluding the current user.
         ///</summary>
         ///<param name="currentUserId">The unique identifier of the current user.</param>
-        ///<returns>A collection of user entities excluding the current user.</returns>
-        Task<IEnumerable<UserResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId);
+        ///<returns>A collection of UserChatResponseDto representing users, excluding the current user.</returns>
+        Task<IEnumerable<UserChatResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId);
 
 
         /// <summary>

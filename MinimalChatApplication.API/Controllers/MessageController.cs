@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MinimalChatApplication.API.Hubs;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
+using MinimalChatApplication.Domain.Models;
 using System.Data;
 using System.Security.Claims;
 
@@ -16,15 +18,17 @@ namespace MinimalChatApplication.API.Controllers
     {
         private readonly IMessageService _messageService;
         private readonly IHubContext<ChatHub> _chatHub;
+        private readonly IMapper _mapper;
 
         /// <summary>
         /// Initializes a new instance of the MessageController class.
         /// </summary>
         /// <param name="messageService">The service responsible for message-related operations.</param>
-        public MessageController(IMessageService messageService, IHubContext<ChatHub> chatHub)
+        public MessageController(IMessageService messageService, IHubContext<ChatHub> chatHub, IMapper mapper)
         {
             _messageService = messageService;
             _chatHub = chatHub;
+            _mapper = mapper;
         }
 
 
@@ -65,32 +69,25 @@ namespace MinimalChatApplication.API.Controllers
                         Data = null
                     });
                 }
-                var messageId = await _messageService.SendMessageAsync(messageDto, senderId);
-                if (messageId != null)
+                var message = await _messageService.SendMessageAsync(messageDto, senderId);
+                if (message?.Id != null)
                 {
-                    var result = await _messageService.UpdateMessageCount(senderId, messageDto.ReceiverId);
-                    var messageResponseDto = new MessageResponseDto
-                    {
-                        MessageId = messageId,
-                        SenderId = senderId,
-                        ReceiverId = messageDto.ReceiverId,
-                        Content = messageDto.Content,
-                        Timestamp = DateTime.Now
-                    };
+                    var (userChatResponseDto, isLoggedIn) = await _messageService.IncreaseMessageCount(message.SenderId, message.ReceiverId);
+                    
 
                     // Broadcasts a new message to all connected clients using SignalR.
-                    await _chatHub.Clients.All.SendAsync("ReceiveMessage", messageResponseDto);
+                    await _chatHub.Clients.All.SendAsync("ReceiveMessage", message);
 
-                    if(result.IsLoggedIn)
+                    if(isLoggedIn)
                     {
                         // Broadcasts message count and chat status to all connected clients using SignalR.
-                        await _chatHub.Clients.All.SendAsync("UpdateMessageCount", result.MessageCount, result.IsRead, result.UserId);
+                        await _chatHub.Clients.All.SendAsync("UpdateMessageCount", userChatResponseDto.MessageCount, userChatResponseDto.IsRead, userChatResponseDto.UserId);
                     }
                     return Ok(new ApiResponse<MessageResponseDto>
                     {
                         StatusCode = StatusCodes.Status200OK,
                         Message = "Message sent successfully",
-                        Data = messageResponseDto
+                        Data = message
                     });
                 }
                 else
@@ -206,24 +203,34 @@ namespace MinimalChatApplication.API.Controllers
                 }
 
                 // Delete the message
-                var deleteResult = await _messageService.DeleteMessageAsync(messageId, userId);
+                var result = await _messageService.DeleteMessageAsync(messageId, userId);
 
-                if (deleteResult.success)
+                if (result.success)
                 {
+                    var (userChatResponseDto, isLoggedIn) = await _messageService.DecreaseMessageCount(result.deletedMessage.SenderId, result.deletedMessage.ReceiverId);
+
+
                     // Broadcasts a deleted message notification to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveDeletedMessage", messageId);
+
+                    if (isLoggedIn)
+                    {
+                        // Broadcasts message count and chat status to all connected clients using SignalR.
+                        await _chatHub.Clients.All.SendAsync("UpdateMessageCount", userChatResponseDto.MessageCount, userChatResponseDto.IsRead, userChatResponseDto.UserId);
+                    }
+                    
                     return Ok(new ApiResponse<object>
                     {
-                        StatusCode = deleteResult.StatusCode,
-                        Message = deleteResult.message,
+                        StatusCode = result.StatusCode,
+                        Message = result.message,
                         Data = null
                     });
                 }
 
-                return StatusCode(deleteResult.StatusCode, new ApiResponse<object>
+                return StatusCode(result.StatusCode, new ApiResponse<object>
                 {
-                    StatusCode = deleteResult.StatusCode,
-                    Message = deleteResult.message,
+                    StatusCode = result.StatusCode,
+                    Message = result.message,
                     Data = null
                 });
             }
