@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -18,6 +19,7 @@ namespace MinimalChatApplication.Data.Services
         private readonly SignInManager<ChatApplicationUser> _signInManager;
         private readonly IConfiguration _configuration;
         private readonly IUserRepository _userRepository;
+        private readonly IMapper _mapper;
 
         /// <summary>
         /// Initializes a new instance of the UserService class with dependencies for user management and sign-in.
@@ -27,12 +29,14 @@ namespace MinimalChatApplication.Data.Services
         public UserService(UserManager<ChatApplicationUser> userManager,
             SignInManager<ChatApplicationUser> signInManager,
             IConfiguration configuration,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IMapper mapper)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
             _userRepository = userRepository;
+            _mapper = mapper;
         }
 
         #region User Authentication Operations
@@ -75,12 +79,7 @@ namespace MinimalChatApplication.Data.Services
             }
             if (result.Succeeded)
             {
-                var userResponseDto = new UserResponseDto
-                {
-                    UserId = user.Id,
-                    Name = user.Name,
-                    Email = user.Email,
-                };
+                var userResponseDto = _mapper.Map<UserResponseDto>(user);
                 return (true, StatusCodes.Status200OK, "Registration successful", userResponseDto);
             }
             else
@@ -225,6 +224,7 @@ namespace MinimalChatApplication.Data.Services
             }
         }
 
+
         /// <summary>
         /// Retrieves the claims principal from an expired JWT token.
         /// </summary>
@@ -257,11 +257,11 @@ namespace MinimalChatApplication.Data.Services
 
 
         ///<summary>
-        /// Asynchronously retrieves a list of users except the current user.
+        /// Asynchronously retrieves a list of users excluding the current user.
         ///</summary>
         ///<param name="currentUserId">The unique identifier of the current user.</param>
-        ///<returns>A collection of user entities excluding the current user.</returns>
-        public async Task<IEnumerable<UserResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId)
+        ///<returns>A collection of UserChatResponseDto representing users, excluding the current user.</returns>
+        public async Task<IEnumerable<UserChatResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId)
         {
             return await _userRepository.GetUsers(currentUserId);
         }

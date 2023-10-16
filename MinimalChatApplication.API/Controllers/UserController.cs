@@ -1,13 +1,11 @@
-﻿using Google.Apis.Auth;
+﻿using AutoMapper;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MinimalChatApplication.API.Hubs;
-using MinimalChatApplication.Data.Services;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
-using MinimalChatApplication.Domain.Models;
 using System.Security.Claims;
 
 namespace MinimalChatApplication.API.Controllers
@@ -20,14 +18,16 @@ namespace MinimalChatApplication.API.Controllers
         private readonly IConfiguration _configuration;
         private readonly IHubContext<ChatHub> _chatHub;
         private readonly IMessageService _messageService;
+        private readonly IMapper _mapper;
 
         public UserController(IUserService userService, IConfiguration configuration,
-            IHubContext<ChatHub> chatHub, IMessageService messageService)
+            IHubContext<ChatHub> chatHub, IMessageService messageService, IMapper mapper)
         {
             _userService = userService;
             _configuration = configuration;
             _chatHub = chatHub;
             _messageService = messageService;
+            _mapper = mapper;
         }
 
         /// <summary>
@@ -123,7 +123,7 @@ namespace MinimalChatApplication.API.Controllers
                     var refreshTokenValidityInDays = DateTime.Now.AddDays(Convert.ToInt32(_configuration["JWT:RefreshTokenValidityInDays"]));
 
                     await _userService.UpdateRefreshToken(user.Email, refreshToken, refreshTokenValidityInDays);
-                 
+
                     // Broadcasts status to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("UpdateStatus", true, user.Id);
 
@@ -133,13 +133,8 @@ namespace MinimalChatApplication.API.Controllers
                         accessToken = jwtToken,
                         refreshToken,
                         expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
-                        profile = new
-                        {
-                            id = user.Id,
-                            name = user.Name,
-                            email = user.Email
-                        }
-                    });
+                        profile = _mapper.Map<UserResponseDto>(user)
+                });
                 }
                 else
                 {
@@ -192,12 +187,12 @@ namespace MinimalChatApplication.API.Controllers
                 }
 
                 var users = await _userService.GetUsersExceptCurrentUserAsync(userId);
-                
+
 
                 if (users != null && users.Any())
                 {
                     await _messageService.UpdateChatStatusAsync(userId, null, null);
-                    return Ok(new ApiResponse<IEnumerable<UserResponseDto>>
+                    return Ok(new ApiResponse<IEnumerable<UserChatResponseDto>>
                     {
                         StatusCode = StatusCodes.Status200OK,
                         Message = "User list retrieved successfully",
@@ -294,12 +289,7 @@ namespace MinimalChatApplication.API.Controllers
                             accessToken = jwtToken,
                             refreshToken,
                             expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
-                            profile = new
-                            {
-                                id = user.Id,
-                                name = user.Name,
-                                email = user.Email
-                            }
+                            profile = _mapper.Map<UserResponseDto>(user)
                         });
                     }
                     else
@@ -333,12 +323,7 @@ namespace MinimalChatApplication.API.Controllers
                         accessToken = jwtToken,
                         refreshToken,
                         expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
-                        profile = new
-                        {
-                            id = user.Id,
-                            name = user.Name,
-                            email = user.Email
-                        }
+                        profile = _mapper.Map<UserResponseDto>(user)
                     });
                 }
             }

@@ -18,7 +18,7 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <returns>
         /// The unique identifier of the sent message if successful; otherwise, null.
         /// </returns>
-        Task<int?> SendMessageAsync(MessageDto messageDto, string senderId);
+        Task<MessageResponseDto> SendMessageAsync(MessageDto messageDto, string senderId);
 
         /// <summary>
         /// Edits a message with the given ID, updating its content.
@@ -39,30 +39,32 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <returns>
         /// A tuple containing a success flag, HTTP status code, and a message indicating the result of the operation.
         /// </returns>
-        Task<(bool success, int StatusCode, string message)> DeleteMessageAsync(int messageId, string userId);
+        Task<(bool success, int StatusCode, string message, MessageResponseDto deletedMessage)> DeleteMessageAsync(int messageId, string userId);
 
 
         /// <summary>
-        /// Retrieves the conversation history between the logged-in user and a specific receiver user.
+        /// Retrieves the conversation history between a logged-in user and a specific receiver, including user status.
         /// </summary>
         /// <param name="loggedInUserId">The ID of the logged-in user.</param>
-        /// <param name="receiverId">The ID of the receiver user.</param>
-        /// <param name="before">Optional timestamp to filter messages before a specific time.</param>
-        /// <param name="count">The number of messages to retrieve.</param>
-        /// <param name="sort">The sorting mechanism for messages (asc or desc).</param>
+        /// <param name="receiverId">The ID of the message receiver.</param>
+        /// <param name="before">Optional. Retrieves messages created before this date.</param>
+        /// <param name="count">The maximum number of messages to retrieve.</param>
+        /// <param name="sort">The sorting order for the retrieved messages.</param>
         /// <returns>
-        /// A tuple containing an IEnumerable of MessageResponseDto representing the conversation history
-        /// and a boolean indicating the status of the receiver user (active or inactive).
+        /// A tuple containing the conversation history as a collection of <see cref="MessageResponseDto"/> and a boolean
+        /// indicating the user status of the receiver.
         /// </returns>
         Task<(IEnumerable<MessageResponseDto>, bool status)> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort);
 
 
-        ///<summary>
+        /// <summary>
         /// Searches for messages containing a specific query in conversations where the user is either the sender or receiver.
-        ///</summary>
-        ///<param name="userId">The ID of the user initiating the search.</param>
-        ///<param name="query">The string to search for in conversation messages.</param>
-        ///<returns>A collection of MessageResponseDto representing the search results.</returns>
+        /// </summary>
+        /// <param name="userId">The ID of the user initiating the search.</param>
+        /// <param name="query">The string to search for in conversation messages.</param>
+        /// <returns>
+        /// A collection of <see cref="MessageResponseDto"/> representing the search results.
+        /// </returns>
         Task<IEnumerable<MessageResponseDto>> SearchConversationsAsync(string userId, string query);
 
 
@@ -79,13 +81,26 @@ namespace MinimalChatApplication.Domain.Interfaces
 
 
         /// <summary>
-        /// Asynchronously updates the message count and read status for the receiver user in the unread message repository.
+        /// Asynchronously increases the message count and updates the read status for the receiver user in the unread message repository.
         /// </summary>
         /// <param name="senderId">The ID of the sender user.</param>
         /// <param name="receiverId">The ID of the receiver user.</param>
         /// <returns>
-        /// A UserResponseDto containing the updated message count, read status, and logged-in status of the receiver user.
+        /// A tuple containing a <see cref="UserChatResponseDto"/> with the updated message count and read status,
+        /// and a boolean indicating whether the receiver user is currently logged in.
         /// </returns>
-        Task<UserResponseDto> UpdateMessageCount(string senderId, string receiverId);
+        Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> IncreaseMessageCount(string senderId, string receiverId);
+
+
+        /// <summary>
+        /// Asynchronously decreases the message count and updates the read status for the receiver user in the unread message repository.
+        /// </summary>
+        /// <param name="senderId">The ID of the sender user.</param>
+        /// <param name="receiverId">The ID of the receiver user.</param>
+        /// <returns>
+        /// A tuple containing a <see cref="UserChatResponseDto"/> with the updated message count and read status,
+        /// and a boolean indicating whether the receiver user is currently logged in.
+        /// </returns>
+        Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> DecreaseMessageCount(string senderId, string receiverId);
     }
 }

@@ -10,6 +10,7 @@ using MinimalChatApplication.API.Middleware;
 using MinimalChatApplication.Data.Context;
 using MinimalChatApplication.Data.Repository;
 using MinimalChatApplication.Data.Services;
+using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 using System.Text;
@@ -21,6 +22,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddAutoMapper(typeof(AutoMapperProfiles));
 
 // Define and configure Swagger documentation settings for API.
 builder.Services.AddSwaggerGen(option =>

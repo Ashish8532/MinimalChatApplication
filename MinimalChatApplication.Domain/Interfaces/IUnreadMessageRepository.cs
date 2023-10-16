@@ -45,13 +45,13 @@ namespace MinimalChatApplication.Domain.Interfaces
 
 
         /// <summary>
-        /// Asynchronously retrieves the chat record for the logged-in user from the UnreadMessageCounts table.
+        /// Asynchronously retrieves all chat records for a logged-in user from the UnreadMessageCounts table.
         /// </summary>
         /// <param name="userId">The ID of the logged-in user.</param>
         /// <returns>
-        /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
-        /// representing the chat record for the logged-in user.
+        /// A Task that represents the asynchronous operation and contains a collection of UnreadMessageCount entities
+        /// representing the chat records for the logged-in user.
         /// </returns>
-        Task<UnreadMessageCount> GetLoggedInUserChat(string userId);
+        Task<IEnumerable<UnreadMessageCount>> GetAllLoggedInUserChat(string userId);
     }
 }
