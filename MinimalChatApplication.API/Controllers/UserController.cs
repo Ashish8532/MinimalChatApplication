@@ -42,7 +42,7 @@ namespace MinimalChatApplication.API.Controllers
         /// - 500 Internal Server Error if an unexpected error occurs.
         /// </returns>
         [HttpPost("register")]
-        public async Task<IActionResult> RegisterUser([FromBody] RegisterDto registerDto)
+        public async Task<IActionResult> RegisterUserAsync([FromBody] RegisterDto registerDto)
         {
             try
             {
@@ -91,7 +91,7 @@ namespace MinimalChatApplication.API.Controllers
         /// <summary>
         /// Handles user login.
         /// </summary>
-        /// <param name="model">The login data provided by the user.</param>
+        /// <param name="loginDto">The login data provided by the user.</param>
         /// <returns>
         /// - 200 OK if login is successful, along with a JWT token and user profile details.
         /// - 400 Bad Request if there are validation errors in the provided data.
@@ -99,7 +99,7 @@ namespace MinimalChatApplication.API.Controllers
         /// - 500 Internal Server Error if an unexpected error occurs.
         /// </returns>
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto model)
+        public async Task<IActionResult> LoginUserAsync([FromBody] LoginDto loginDto)
         {
             try
             {
@@ -113,11 +113,11 @@ namespace MinimalChatApplication.API.Controllers
                     });
                 }
 
-                var loginResult = await _userService.LoginAsync(model.Email, model.Password);
+                var loginResult = await _userService.LoginAsync(loginDto.Email, loginDto.Password);
 
                 if (loginResult.Succeeded)
                 {
-                    var user = await _userService.GetUserByEmailAsync(model.Email);
+                    var user = await _userService.GetUserByEmailAsync(loginDto.Email);
                     var jwtToken = _userService.GenerateJwtToken(user);
                     var refreshToken = _userService.GenerateRefreshToken();
                     var refreshTokenValidityInDays = DateTime.Now.AddDays(Convert.ToInt32(_configuration["JWT:RefreshTokenValidityInDays"]));
@@ -171,7 +171,7 @@ namespace MinimalChatApplication.API.Controllers
         /// </remarks>
         [Authorize]
         [HttpGet("user")]
-        public async Task<IActionResult> GetAllUser()
+        public async Task<IActionResult> GetAllUserAsync()
         {
             try
             {
@@ -237,7 +237,7 @@ namespace MinimalChatApplication.API.Controllers
         /// If any errors occur during this process, an appropriate error response is returned.
         /// </remarks>
         [HttpPost("google-signin")]
-        public async Task<IActionResult> GoogleSignin([FromQuery] string idToken)
+        public async Task<IActionResult> GoogleSigninAsync([FromQuery] string idToken)
         {
             try
             {
@@ -349,7 +349,7 @@ namespace MinimalChatApplication.API.Controllers
         /// or a BadRequest response with an error message if the request is invalid.
         /// </returns>
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromQuery] string accessToken, [FromQuery] string refreshToken)
+        public async Task<IActionResult> RefreshTokenAsync([FromQuery] string accessToken, [FromQuery] string refreshToken)
         {
             try
             {
@@ -409,7 +409,7 @@ namespace MinimalChatApplication.API.Controllers
         /// </remarks>
         [Authorize]
         [HttpPost("status")]
-        public async Task<IActionResult> UpdateUserStatus()
+        public async Task<IActionResult> UpdateUserStatusAsync()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)

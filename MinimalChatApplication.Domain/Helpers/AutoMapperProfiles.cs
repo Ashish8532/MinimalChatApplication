@@ -9,22 +9,33 @@ using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Domain.Helpers
 {
+    /// <summary>
+    /// AutoMapper profiles for mapping between domain models and DTOs.
+    /// </summary>
     public class AutoMapperProfiles : Profile
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AutoMapperProfiles"/> class.
+        /// Configures AutoMapper mappings for various domain models and DTOs.
+        /// </summary>
         public AutoMapperProfiles()
         {
+            // Mapping between ChatApplicationUser and UserResponseDto in both directions.
             CreateMap<ChatApplicationUser, UserResponseDto>().ReverseMap();
 
+
+            // Mapping between ChatApplicationUser and UserChatResponseDto with custom member mapping.
             CreateMap<ChatApplicationUser, UserChatResponseDto>()
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Id))
-            // Add other mappings as needed
-            .ReverseMap(); // If you want to support reverse mapping as well
+            .ReverseMap();
 
-            // If you have additional mappings for UnreadMessageCount to UserChatResponseDto, add them here.
+            // Mapping between UnreadMessageCount and UserChatResponseDto with custom member mapping.
             CreateMap<UnreadMessageCount, UserChatResponseDto>()
                 .ForMember(dest => dest.MessageCount, opt => opt.MapFrom(src => src.MessageCount))
                 .ForMember(dest => dest.IsRead, opt => opt.MapFrom(src => src.IsRead));
 
+
+            // Mapping between Message and MessageResponseDto in both directions.
             CreateMap<Message, MessageResponseDto>().ReverseMap();
         }
     }

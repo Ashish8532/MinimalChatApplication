@@ -32,7 +32,7 @@ namespace MinimalChatApplication.Data.Repository
         /// If currentUserId is null, it returns all users available in the database.
         /// The returned users include additional information such as message count and read status.
         /// </remarks>
-        public async Task<IEnumerable<UserChatResponseDto>> GetUsers(string currentUserId)
+        public async Task<IEnumerable<UserChatResponseDto>> GetUsersAsync(string currentUserId)
         {
             var usersWithMessageCount = await (from user in _dbContext.Users
                                                where user.Id != currentUserId

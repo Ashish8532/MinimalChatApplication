@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.SignalR;
 using MinimalChatApplication.API.Hubs;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
-using MinimalChatApplication.Domain.Models;
-using System.Data;
 using System.Security.Claims;
 
 namespace MinimalChatApplication.API.Controllers
@@ -46,7 +44,7 @@ namespace MinimalChatApplication.API.Controllers
         /// - 500 Internal Server Error if an error occurs during processing.
         /// </returns>
         [HttpPost]
-        public async Task<IActionResult> PostMessage([FromBody] MessageDto messageDto)
+        public async Task<IActionResult> PostMessageAsync([FromBody] MessageDto messageDto)
         {
             try
             {
@@ -72,13 +70,13 @@ namespace MinimalChatApplication.API.Controllers
                 var message = await _messageService.SendMessageAsync(messageDto, senderId);
                 if (message?.Id != null)
                 {
-                    var (userChatResponseDto, isLoggedIn) = await _messageService.IncreaseMessageCount(message.SenderId, message.ReceiverId);
-                    
+                    var (userChatResponseDto, isLoggedIn) = await _messageService.IncreaseMessageCountAsync(message.SenderId, message.ReceiverId);
+
 
                     // Broadcasts a new message to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveMessage", message);
 
-                    if(isLoggedIn)
+                    if (isLoggedIn)
                     {
                         // Broadcasts message count and chat status to all connected clients using SignalR.
                         await _chatHub.Clients.All.SendAsync("UpdateMessageCount", userChatResponseDto.MessageCount, userChatResponseDto.IsRead, userChatResponseDto.UserId);
@@ -125,7 +123,7 @@ namespace MinimalChatApplication.API.Controllers
         /// - 500 Internal Server Error if an error occurs during processing.
         /// </returns>
         [HttpPut("{messageId}")]
-        public async Task<IActionResult> PutMessage([FromRoute] int messageId, [FromBody] EditMessageDto editMessageDto)
+        public async Task<IActionResult> PutMessageAsync([FromRoute] int messageId, [FromBody] EditMessageDto editMessageDto)
         {
             try
             {
@@ -187,7 +185,7 @@ namespace MinimalChatApplication.API.Controllers
         /// - 500 Internal Server Error if an error occurs during processing.
         /// </returns>
         [HttpDelete("{messageId}")]
-        public async Task<IActionResult> DeleteMessage([FromRoute] int messageId)
+        public async Task<IActionResult> DeleteMessageAsync([FromRoute] int messageId)
         {
             try
             {
@@ -207,7 +205,7 @@ namespace MinimalChatApplication.API.Controllers
 
                 if (result.success)
                 {
-                    var (userChatResponseDto, isLoggedIn) = await _messageService.DecreaseMessageCount(result.deletedMessage.SenderId, result.deletedMessage.ReceiverId);
+                    var (userChatResponseDto, isLoggedIn) = await _messageService.DecreaseMessageCountAsync(result.deletedMessage.SenderId, result.deletedMessage.ReceiverId);
 
 
                     // Broadcasts a deleted message notification to all connected clients using SignalR.
@@ -218,7 +216,7 @@ namespace MinimalChatApplication.API.Controllers
                         // Broadcasts message count and chat status to all connected clients using SignalR.
                         await _chatHub.Clients.All.SendAsync("UpdateMessageCount", userChatResponseDto.MessageCount, userChatResponseDto.IsRead, userChatResponseDto.UserId);
                     }
-                    
+
                     return Ok(new ApiResponse<object>
                     {
                         StatusCode = result.StatusCode,
@@ -260,7 +258,7 @@ namespace MinimalChatApplication.API.Controllers
         /// An IActionResult containing a response with conversation history or an error message.
         /// </returns>
         [HttpGet]
-        public async Task<IActionResult> RetrieveConversationHistory([FromQuery] Guid userId, [FromQuery] DateTime? before = null,
+        public async Task<IActionResult> RetrieveConversationHistoryAsync([FromQuery] Guid userId, [FromQuery] DateTime? before = null,
             [FromQuery] int count = 20, [FromQuery] string sort = "asc")
         {
             try
@@ -342,7 +340,7 @@ namespace MinimalChatApplication.API.Controllers
         /// - 500 Internal Server Error if an error occurs during processing.
         /// </returns>
         [HttpPost("chat-status")]
-        public async Task<IActionResult> UpdateChatStatus([FromQuery] string currentUserId, [FromQuery] string? previousUserId)
+        public async Task<IActionResult> UpdateChatStatusAsync([FromQuery] string currentUserId, [FromQuery] string? previousUserId)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)

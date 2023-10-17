@@ -89,7 +89,7 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// A tuple containing a <see cref="UserChatResponseDto"/> with the updated message count and read status,
         /// and a boolean indicating whether the receiver user is currently logged in.
         /// </returns>
-        Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> IncreaseMessageCount(string senderId, string receiverId);
+        Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> IncreaseMessageCountAsync(string senderId, string receiverId);
 
 
         /// <summary>
@@ -101,6 +101,6 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// A tuple containing a <see cref="UserChatResponseDto"/> with the updated message count and read status,
         /// and a boolean indicating whether the receiver user is currently logged in.
         /// </returns>
-        Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> DecreaseMessageCount(string senderId, string receiverId);
+        Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> DecreaseMessageCountAsync(string senderId, string receiverId);
     }
 }
