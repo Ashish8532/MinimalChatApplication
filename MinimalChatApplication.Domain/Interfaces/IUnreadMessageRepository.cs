@@ -29,7 +29,7 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
         /// representing the chat record between the receiver-user and sender-user.
         /// </returns>
-        Task<UnreadMessageCount> GetReceiverMessageChat(string senderId, string receiverId);
+        Task<UnreadMessageCount> GetReceiverMessageChatAsync(string senderId, string receiverId);
 
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
         /// representing the chat record between the sender-user and receiver-user.
         /// </returns>
-        Task<UnreadMessageCount> GetSenderMessageChat(string senderId, string receiverId);
+        Task<UnreadMessageCount> GetSenderMessageChatAsync(string senderId, string receiverId);
 
 
         /// <summary>
@@ -52,6 +52,6 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// A Task that represents the asynchronous operation and contains a collection of UnreadMessageCount entities
         /// representing the chat records for the logged-in user.
         /// </returns>
-        Task<IEnumerable<UnreadMessageCount>> GetAllLoggedInUserChat(string userId);
+        Task<IEnumerable<UnreadMessageCount>> GetAllLoggedInUserChatAsync(string userId);
     }
 }

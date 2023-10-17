@@ -40,7 +40,7 @@ namespace MinimalChatApplication.Data.Repository
         /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
         /// representing the chat record between the receiver-user and sender-user.
         /// </returns>
-        public async Task<UnreadMessageCount> GetReceiverMessageChat(string senderId, string receiverId)
+        public async Task<UnreadMessageCount> GetReceiverMessageChatAsync(string senderId, string receiverId)
         {
             return await _context.UnreadMessageCounts
                  .FirstOrDefaultAsync(x => x.SenderId == receiverId && x.ReceiverId == senderId);
@@ -56,7 +56,7 @@ namespace MinimalChatApplication.Data.Repository
         /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
         /// representing the chat record between the sender-user and receiver-user.
         /// </returns>
-        public async Task<UnreadMessageCount> GetSenderMessageChat(string senderId, string receiverId)
+        public async Task<UnreadMessageCount> GetSenderMessageChatAsync(string senderId, string receiverId)
         {
             return await _context.UnreadMessageCounts
                  .FirstOrDefaultAsync(x => x.SenderId == senderId && x.ReceiverId == receiverId);
@@ -71,7 +71,7 @@ namespace MinimalChatApplication.Data.Repository
         /// A Task that represents the asynchronous operation and contains a collection of UnreadMessageCount entities
         /// representing the chat records for the logged-in user.
         /// </returns>
-        public async Task<IEnumerable<UnreadMessageCount>> GetAllLoggedInUserChat(string userId)
+        public async Task<IEnumerable<UnreadMessageCount>> GetAllLoggedInUserChatAsync(string userId)
         {
             return await _context.UnreadMessageCounts.Where(x => x.SenderId == userId).ToListAsync();
         }

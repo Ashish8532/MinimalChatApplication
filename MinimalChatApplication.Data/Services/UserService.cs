@@ -263,7 +263,7 @@ namespace MinimalChatApplication.Data.Services
         ///<returns>A collection of UserChatResponseDto representing users, excluding the current user.</returns>
         public async Task<IEnumerable<UserChatResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId)
         {
-            return await _userRepository.GetUsers(currentUserId);
+            return await _userRepository.GetUsersAsync(currentUserId);
         }
 
 

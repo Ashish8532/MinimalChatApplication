@@ -29,7 +29,7 @@ namespace MinimalChatApplication.API.Controllers
         /// 500 Internal Server Error - An error occurred while processing the request.
         /// </returns>
         [HttpGet("search")]
-        public async Task<IActionResult> SearchConversations([FromQuery] string query)
+        public async Task<IActionResult> SearchConversationsAsync([FromQuery] string query)
         {
             try
             {

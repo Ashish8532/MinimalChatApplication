@@ -18,17 +18,20 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
+// Adding AutoMapper with profiles defined in the project.
 builder.Services.AddAutoMapper(typeof(AutoMapperProfiles));
 
 // Define and configure Swagger documentation settings for API.
 builder.Services.AddSwaggerGen(option =>
 {
     option.SwaggerDoc("v1", new OpenApiInfo { Title = "MinimalChatAPI", Version = "v1" });
+
+    // Configure Bearer token authentication for Swagger.
     option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -54,6 +57,7 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
+// Configuration manager for accessing application settings.
 Microsoft.Extensions.Configuration.ConfigurationManager Configuration = builder.Configuration;
 
 // Database connection string configuration
@@ -61,7 +65,7 @@ var connectionStrings = builder.Configuration.GetConnectionString("ChatApplicati
 builder.Services.AddDbContextPool<ChatApplicationDbContext>(options => options.UseSqlServer(
 connectionStrings, b => b.MigrationsAssembly("MinimalChatApplication.Data")));
 
-
+// Register repositories and services in the dependency injection container.
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<ILogRepository, LogRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -70,7 +74,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 
 
-// Configure Identity
+// Configure Identity with specified options.
 builder.Services.AddIdentity<ChatApplicationUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
@@ -89,10 +93,9 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-
-//Adds JWT Bearer authentication options to the authentication services.
 .AddJwtBearer(options =>
 {
+    // Configure JWT Bearer authentication options.
     options.SaveToken = true;
     options.RequireHttpsMetadata = false;
     options.TokenValidationParameters = new TokenValidationParameters()
@@ -111,10 +114,12 @@ builder.Services.AddAuthentication(options =>
 })
 .AddGoogle(options =>
 {
+    // Configure Google authentication options.
     options.ClientId = Configuration["Authentication:Google:ClientId"];
     options.ClientSecret = Configuration["Authentication:Google:ClientSecret"];
 });
 
+// Configure Cross-Origin Resource Sharing (CORS) policy.
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("MyPolicy", builder => builder
@@ -124,6 +129,7 @@ builder.Services.AddCors(options =>
         .AllowCredentials());
 });
 
+// Add SignalR for real-time communication.
 builder.Services.AddSignalR();
 
 var app = builder.Build();
@@ -137,16 +143,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Enable CORS with the configured policy.
 app.UseCors("MyPolicy");
 
 app.UseAuthentication();
 
 app.UseAuthorization();
 
+// Use custom middleware for logging HTTP requests.
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.MapControllers();
 
+// Map SignalR hub for real-time communication.
 app.MapHub<ChatHub>("/chatHub");
 
 app.Run();

@@ -31,7 +31,7 @@ namespace MinimalChatApplication.API.Controllers
         ///   or 500 Internal Server Error for other exceptions.
         /// </returns>
         [HttpGet]
-        public async Task<IActionResult> GetLogs([FromQuery] DateTime? startTime = null,
+        public async Task<IActionResult> GetLogsAsync([FromQuery] DateTime? startTime = null,
             [FromQuery] DateTime? endTime = null)
         {
             try
