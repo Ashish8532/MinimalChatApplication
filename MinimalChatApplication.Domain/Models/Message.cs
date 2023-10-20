@@ -18,8 +18,11 @@ namespace MinimalChatApplication.Domain.Models
         public string ReceiverId { get; set; }
         public ChatApplicationUser Receiver { get; set; }
 
-        [Required]
-        public string Content { get; set; }
+        // Content field which stores text & emoji
+        public string? Content { get; set; } 
+
+        // Gif image gets stored in GifData field
+        public byte[]? GifData { get; set; } 
 
         public DateTime Timestamp { get; set; }
 
