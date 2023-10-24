@@ -5,7 +5,7 @@
 namespace MinimalChatApplication.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class Message_Emoji_And_Gif_Migration : Migration
+    public partial class Add_Migration_For_GIF_Data : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -18,10 +18,10 @@ namespace MinimalChatApplication.Data.Migrations
                 oldClrType: typeof(string),
                 oldType: "nvarchar(max)");
 
-            migrationBuilder.AddColumn<byte[]>(
-                name: "GifData",
+            migrationBuilder.AddColumn<string>(
+                name: "GifUrl",
                 table: "Messages",
-                type: "varbinary(max)",
+                type: "nvarchar(max)",
                 nullable: true);
         }
 
@@ -29,7 +29,7 @@ namespace MinimalChatApplication.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "GifData",
+                name: "GifUrl",
                 table: "Messages");
 
             migrationBuilder.AlterColumn<string>(

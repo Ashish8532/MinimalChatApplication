@@ -21,8 +21,8 @@ namespace MinimalChatApplication.Domain.Models
         // Content field which stores text & emoji
         public string? Content { get; set; } 
 
-        // Gif image gets stored in GifData field
-        public byte[]? GifData { get; set; } 
+        // Gif image url gets stored in GifData field
+        public string? GifUrl { get; set; } 
 
         public DateTime Timestamp { get; set; }
 
