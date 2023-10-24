@@ -12,7 +12,7 @@ namespace MinimalChatApplication.Domain.Dtos
     {
         [Required]
         public string ReceiverId { get; set; }
-        [Required]
-        public string Content { get; set; }
+        public string? Content { get; set; }
+        public string? GifUrl { get; set; }
     }
 }

@@ -12,8 +12,8 @@ using MinimalChatApplication.Data.Context;
 namespace MinimalChatApplication.Data.Migrations
 {
     [DbContext(typeof(ChatApplicationDbContext))]
-    [Migration("20231020051553_Message_Emoji_And_Gif_Migration")]
-    partial class Message_Emoji_And_Gif_Migration
+    [Migration("20231024063520_Add_Migration_For_GIF_Data")]
+    partial class Add_Migration_For_GIF_Data
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -271,8 +271,8 @@ namespace MinimalChatApplication.Data.Migrations
                     b.Property<string>("Content")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<byte[]>("GifData")
-                        .HasColumnType("varbinary(max)");
+                    b.Property<string>("GifUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReceiverId")
                         .HasColumnType("nvarchar(450)");

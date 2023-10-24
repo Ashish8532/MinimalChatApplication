@@ -49,6 +49,7 @@ namespace MinimalChatApplication.Data.Services
                     SenderId = senderId,
                     ReceiverId = messageDto.ReceiverId,
                     Timestamp = DateTime.Now,
+                    GifUrl = messageDto.GifUrl
                 };
 
                 var data = await _messageRepository.AddAsync(message);

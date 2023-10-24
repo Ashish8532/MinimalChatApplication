@@ -268,8 +268,8 @@ namespace MinimalChatApplication.Data.Migrations
                     b.Property<string>("Content")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<byte[]>("GifData")
-                        .HasColumnType("varbinary(max)");
+                    b.Property<string>("GifUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReceiverId")
                         .HasColumnType("nvarchar(450)");
