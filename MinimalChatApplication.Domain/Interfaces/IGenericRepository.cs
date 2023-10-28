@@ -38,14 +38,43 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// </returns>
         bool Update(T entity);
 
-        ///<summary>
-        /// Retrieves an entity of type T by its unique identifier asynchronously.
-        ///</summary>
-        ///<param name="id">The unique identifier of the entity to retrieve.</param>
-        ///<returns>
-        /// A Task that represents the asynchronous operation. The task result contains
-        /// the entity with the specified identifier, or null if not found.
-        ///</returns>
-        Task<T> GetByIdAsync(int id);
+
+        /// <summary>
+        /// Asynchronously retrieves the first entity from the repository that matches a specified condition.
+        /// </summary>
+        /// <param name="filter">A filter expression specifying the condition for entity selection.</param>
+        /// <returns>
+        /// A task that represents the asynchronous operation. The task result contains the first entity
+        /// that satisfies the provided condition, or null if no matching entity is found.
+        /// </returns>
+        Task<T> GetFirstOrDefaultAsync(Expression<Func<T, bool>> filter);
+
+
+        /// <summary>
+        /// Asynchronously retrieves a collection of entities from the repository that match a specified condition.
+        /// </summary>
+        /// <param name="filter">A filter expression specifying the condition for entity selection.</param>
+        /// <returns>
+        /// A task that represents the asynchronous operation. The task result contains a collection of entities
+        /// that satisfy the provided condition.
+        /// </returns>
+        Task<IEnumerable<T>> GetByConditionAsync(Expression<Func<T, bool>> filter);
+
+
+        /// <summary>
+        /// Retrieves all entities in the repository, optionally including related entities.
+        /// </summary>
+        /// <param name="include">An expression representing related entities to include in the query.</param>
+        /// <returns>
+        /// A collection of entities retrieved from the repository.
+        /// </returns>
+        Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, object>> include = null);
+
+
+        /// <summary>
+        /// Asynchronously saves changes to the database, persisting any pending modifications.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task SaveChangesAsync();
     }
 }

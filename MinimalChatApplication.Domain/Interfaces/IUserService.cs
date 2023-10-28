@@ -96,6 +96,15 @@ namespace MinimalChatApplication.Domain.Interfaces
         Task<IEnumerable<UserChatResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId);
 
 
+        ///<summary>
+        /// Asynchronously retrieves the online status of a user based on their unique identifier.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <returns>True if the user is online (active), false if the user is offline (inactive).</returns>
+
+        Task<bool> GetUserStatusAsync(string userId);
+
+
         /// <summary>
         /// Asynchronously updates the status of a user based on the provided user ID and status.
         /// </summary>

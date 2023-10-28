@@ -66,10 +66,8 @@ builder.Services.AddDbContextPool<ChatApplicationDbContext>(options => options.U
 connectionStrings, b => b.MigrationsAssembly("MinimalChatApplication.Data")));
 
 // Register repositories and services in the dependency injection container.
-builder.Services.AddScoped<IMessageRepository, MessageRepository>();
-builder.Services.AddScoped<ILogRepository, LogRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUnreadMessageRepository, UnreadMessageRepository>();
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 

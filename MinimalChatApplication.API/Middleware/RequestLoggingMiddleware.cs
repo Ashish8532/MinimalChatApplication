@@ -28,8 +28,15 @@ namespace MinimalChatApplication.API.Middleware
         /// </summary>
         /// <param name="httpContext">The HTTP context.</param>
         /// <param name="_logRepository">The repository for storing log entries.</param>
+        /// <remarks>
+        /// This middleware captures information about incoming API requests, including the client's IP address,
+        /// request body, and the associated username extracted from the authentication token (if available).
+        /// It stores this information as log entries in the specified repository. The captured request details
+        /// are useful for monitoring and auditing API usage. After processing the request, the middleware
+        /// proceeds to the next component in the pipeline.
+        /// </remarks>
         public async Task Invoke(HttpContext httpContext, 
-            ILogRepository _logRepository)
+            IGenericRepository<Log> _logRepository)
         {
             var injectedRequestStream = new MemoryStream();
             try
