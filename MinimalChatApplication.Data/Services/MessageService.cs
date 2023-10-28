@@ -4,26 +4,27 @@ using Microsoft.AspNetCore.Identity;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
+using System.Linq.Expressions;
 
 namespace MinimalChatApplication.Data.Services
 {
     public class MessageService : IMessageService
     {
-        private readonly IMessageRepository _messageRepository;
-        private readonly IUserRepository _userRepository;
-        private readonly IUnreadMessageRepository _unreadMessageRepository;
+        private readonly IGenericRepository<Message> _messageRepository;
+        private readonly IGenericRepository<UnreadMessageCount> _unreadMessageRepository;
+        private readonly IUserService _userService;
         private readonly UserManager<ChatApplicationUser> _userManager;
         private readonly IMapper _mapper;
 
 
-        public MessageService(IMessageRepository messageRepository,
-            IUserRepository userRepository,
+        public MessageService(IGenericRepository<Message> messageRepository,
+            IUserService userService,
             UserManager<ChatApplicationUser> userManager,
-            IUnreadMessageRepository unreadMessageRepository,
+            IGenericRepository<UnreadMessageCount> unreadMessageRepository,
             IMapper mapper)
         {
             _messageRepository = messageRepository;
-            _userRepository = userRepository;
+            _userService = userService;
             _userManager = userManager;
             _unreadMessageRepository = unreadMessageRepository;
             _mapper = mapper;
@@ -73,7 +74,7 @@ namespace MinimalChatApplication.Data.Services
         public async Task<(bool success, int StatusCode, string message)> EditMessageAsync(int messageId, string userId, string newContent)
         {
             // Check if the message with the given ID exists
-            var message = await _messageRepository.GetByIdAsync(messageId);
+            var message = await _messageRepository.GetFirstOrDefaultAsync(m => m.Id == messageId);
 
             if (message != null)
             {
@@ -108,7 +109,7 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         public async Task<(bool success, int StatusCode, string message, MessageResponseDto deletedMessage)> DeleteMessageAsync(int messageId, string userId)
         {
-            var message = await _messageRepository.GetByIdAsync(messageId);
+            var message = await _messageRepository.GetFirstOrDefaultAsync(m => m.Id == messageId);
 
             if (message != null)
             {
@@ -145,10 +146,29 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         public async Task<(IEnumerable<MessageResponseDto>, bool status)> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
         {
-            var conversationHistory = await _messageRepository
-                .GetConversationHistoryAsync(loggedInUserId, receiverId, before, count, sort);
+            Expression<Func<Message, bool>> filter =
+                      m => (m.SenderId == loggedInUserId && m.ReceiverId == receiverId) ||
+                (m.SenderId == receiverId && m.ReceiverId == loggedInUserId);
 
-            var userStatus = await _userRepository.GetUserStatusAsync(receiverId);
+            var conversationHistory = await _messageRepository.GetByConditionAsync(filter);
+
+            if (before.HasValue)
+            {
+                conversationHistory = conversationHistory.Where(m => m.Timestamp < before);
+            }
+
+            if (sort.Equals("desc", StringComparison.OrdinalIgnoreCase))
+            {
+                conversationHistory = conversationHistory.OrderByDescending(m => m.Timestamp);
+            }
+            else
+            {
+                conversationHistory = conversationHistory.OrderBy(m => m.Timestamp);
+            }
+            conversationHistory = conversationHistory.Take(count);
+            conversationHistory = conversationHistory.OrderBy(m => m.Id);
+
+            var userStatus = await _userService.GetUserStatusAsync(receiverId);
 
             var messageResponseDtos = _mapper.Map<IEnumerable<MessageResponseDto>>(conversationHistory);
 
@@ -166,7 +186,10 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         public async Task<IEnumerable<MessageResponseDto>> SearchConversationsAsync(string userId, string query)
         {
-            var searchedConversation = await _messageRepository.SearchConversationsAsync(userId, query);
+            Expression<Func<Message, bool>> filter =
+                      m => (m.SenderId == userId || m.ReceiverId == userId) && m.Content.Contains(query);
+
+            var searchedConversation = await _messageRepository.GetByConditionAsync(filter);
 
             var messageResponseDtos = _mapper.Map<IEnumerable<MessageResponseDto>>(searchedConversation);
 
@@ -189,7 +212,7 @@ namespace MinimalChatApplication.Data.Services
             {
                 if (userId != null && currentUserId == null && previousUserId == null)
                 {
-                    var loggedInUsers = await _unreadMessageRepository.GetAllLoggedInUserChatAsync(userId);
+                    var loggedInUsers = await GetAllLoggedInUserChatAsync(userId);
 
                     foreach (var loggedInUser in loggedInUsers)
                     {
@@ -207,7 +230,7 @@ namespace MinimalChatApplication.Data.Services
 
                 if (string.IsNullOrEmpty(previousUserId) || previousUserId.ToLower() == "null" || previousUserId == "null")
                 {
-                    var chatExists = await _unreadMessageRepository.GetSenderMessageChatAsync(userId, currentUserId);
+                    var chatExists = await GetSenderMessageChatAsync(userId, currentUserId);
                     if (chatExists != null)
                     {
                         chatExists.IsRead = true;
@@ -223,8 +246,8 @@ namespace MinimalChatApplication.Data.Services
                 {
                     await CreateSenderChatAsync(userId, previousUserId);
                     await CreateReceiverChatAsync(userId, previousUserId);
-                    var previousUserChat = await _unreadMessageRepository.GetSenderMessageChatAsync(userId, previousUserId);
-                    var currentUserChat = await _unreadMessageRepository.GetSenderMessageChatAsync(userId, currentUserId);
+                    var previousUserChat = await GetSenderMessageChatAsync(userId, previousUserId);
+                    var currentUserChat = await GetSenderMessageChatAsync(userId, currentUserId);
 
                     if (previousUserChat != null)
                     {
@@ -245,8 +268,7 @@ namespace MinimalChatApplication.Data.Services
             }
             catch (Exception ex)
             {
-                // Log or handle exceptions
-                return (false, StatusCodes.Status500InternalServerError, "Internal server error");
+                return (false, StatusCodes.Status500InternalServerError, $"Internal server error. {ex.Message}");
             }
         }
 
@@ -261,7 +283,7 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         private async Task<bool> CreateSenderChatAsync(string senderId, string receiverId)
         {
-            var senderChat = await _unreadMessageRepository.GetSenderMessageChatAsync(senderId, receiverId);
+            var senderChat = await GetSenderMessageChatAsync(senderId, receiverId);
             if (senderChat == null)
             {
                 senderChat = new UnreadMessageCount
@@ -290,7 +312,7 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         private async Task<bool> CreateReceiverChatAsync(string senderId, string receiverId)
         {
-            var senderChat = await _unreadMessageRepository.GetReceiverMessageChatAsync(senderId, receiverId);
+            var senderChat = await GetReceiverMessageChatAsync(senderId, receiverId);
             if (senderChat == null)
             {
                 senderChat = new UnreadMessageCount
@@ -320,7 +342,7 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         public async Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> IncreaseMessageCountAsync(string senderId, string receiverId)
         {
-            var receiverChatExists = await _unreadMessageRepository.GetReceiverMessageChatAsync(senderId, receiverId);
+            var receiverChatExists = await GetReceiverMessageChatAsync(senderId, receiverId);
             UserChatResponseDto userChatResponseDto;
 
 
@@ -371,7 +393,7 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         public async Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> DecreaseMessageCountAsync(string senderId, string receiverId)
         {
-            var receiverChatExists = await _unreadMessageRepository.GetReceiverMessageChatAsync(senderId, receiverId);
+            var receiverChatExists = await GetReceiverMessageChatAsync(senderId, receiverId);
             UserChatResponseDto userChatResponseDto;
 
 
@@ -408,6 +430,52 @@ namespace MinimalChatApplication.Data.Services
                 return (userChatResponseDto, receiverLoggedIn.IsActive);
             }
             return (null, false);
+        }
+
+        /// <summary>
+        /// Asynchronously retrieves the chat record for the receiver-user and sender-user from the UnreadMessageCounts table.
+        /// </summary>
+        /// <param name="senderId">The ID of the sender user.</param>
+        /// <param name="receiverId">The ID of the receiver user.</param>
+        /// <returns>
+        /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
+        /// representing the chat record between the receiver-user and sender-user.
+        /// </returns>
+        private async Task<UnreadMessageCount> GetReceiverMessageChatAsync(string senderId, string receiverId)
+        {
+            return await _unreadMessageRepository.GetFirstOrDefaultAsync(x => x.SenderId == receiverId && x.ReceiverId == senderId);
+        }
+
+
+        /// <summary>
+        /// Asynchronously retrieves the chat record for the sender-user and receiver-user from the UnreadMessageCounts table.
+        /// </summary>
+        /// <param name="senderId">The ID of the sender user.</param>
+        /// <param name="receiverId">The ID of the receiver user.</param>
+        /// <returns>
+        /// A Task that represents the asynchronous operation and contains the UnreadMessageCount entity
+        /// representing the chat record between the sender-user and receiver-user.
+        /// </returns>
+        private async Task<UnreadMessageCount> GetSenderMessageChatAsync(string senderId, string receiverId)
+        {
+            return await _unreadMessageRepository.GetFirstOrDefaultAsync(x => x.SenderId == senderId && x.ReceiverId == receiverId);
+        }
+
+
+        /// <summary>
+        /// Asynchronously retrieves all chat records for a logged-in user from the UnreadMessageCounts table.
+        /// </summary>
+        /// <param name="userId">The ID of the logged-in user.</param>
+        /// <returns>
+        /// A Task that represents the asynchronous operation and contains a collection of UnreadMessageCount entities
+        /// representing the chat records for the logged-in user.
+        /// </returns>
+        private async Task<IEnumerable<UnreadMessageCount>> GetAllLoggedInUserChatAsync(string userId)
+        {
+            Expression<Func<UnreadMessageCount, bool>> filter =
+                      m => m.SenderId == userId;
+
+            return await _unreadMessageRepository.GetByConditionAsync(filter);
         }
     }
 }

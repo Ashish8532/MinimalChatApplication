@@ -7,6 +7,7 @@ using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,8 +18,8 @@ namespace MinimalChatApplication.Data.Services
     {
         private readonly UserManager<ChatApplicationUser> _userManager;
         private readonly SignInManager<ChatApplicationUser> _signInManager;
+        private readonly IGenericRepository<ChatApplicationUser> _userRepository;
         private readonly IConfiguration _configuration;
-        private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
         /// <summary>
@@ -29,7 +30,7 @@ namespace MinimalChatApplication.Data.Services
         public UserService(UserManager<ChatApplicationUser> userManager,
             SignInManager<ChatApplicationUser> signInManager,
             IConfiguration configuration,
-            IUserRepository userRepository,
+            IGenericRepository<ChatApplicationUser> userRepository,
             IMapper mapper)
         {
             _userManager = userManager;
@@ -257,13 +258,47 @@ namespace MinimalChatApplication.Data.Services
 
 
         ///<summary>
-        /// Asynchronously retrieves a list of users excluding the current user.
-        ///</summary>
-        ///<param name="currentUserId">The unique identifier of the current user.</param>
-        ///<returns>A collection of UserChatResponseDto representing users, excluding the current user.</returns>
+        /// Asynchronously retrieves a list of users, excluding the current user, along with their unread message counts.
+        /// </summary>
+        /// <param name="currentUserId">The unique identifier of the current user.</param>
+        /// <returns>A collection of UserChatResponseDto representing users, excluding the current user, with associated unread message counts.</returns>
         public async Task<IEnumerable<UserChatResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId)
         {
-            return await _userRepository.GetUsersAsync(currentUserId);
+            var users = await _userRepository.GetAllAsync(user => user.ReceivedUnreadMessageCounts);
+
+            var usersWithMessageCount = users
+                .Where(user => user.Id != currentUserId)
+                .Select(user => new
+                {
+                    User = user,
+                    UnreadMessageCount = user.ReceivedUnreadMessageCounts
+                        .FirstOrDefault(count =>
+                            count.SenderId == currentUserId &&
+                            count.ReceiverId == user.Id)
+                }).ToList(); 
+
+            var userChatDtos = _mapper.Map<IEnumerable<UserChatResponseDto>>(usersWithMessageCount.Select(x => x.User));
+
+            foreach (var (userChatDto, count) in userChatDtos.Zip(usersWithMessageCount, (d, c) => (d, c.UnreadMessageCount)))
+            {
+                userChatDto.MessageCount = count?.MessageCount ?? 0;
+                userChatDto.IsRead = count?.IsRead ?? false;
+            }
+            return userChatDtos;
+        }
+
+
+        ///<summary>
+        /// Asynchronously retrieves the online status of a user based on their unique identifier.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <returns>True if the user is online (active), false if the user is offline (inactive).</returns>
+
+        public async Task<bool> GetUserStatusAsync(string userId)
+        {
+            var user = await _userRepository.GetFirstOrDefaultAsync(u => u.Id == userId);
+
+            return user?.IsActive ?? false;
         }
 
 
@@ -288,7 +323,7 @@ namespace MinimalChatApplication.Data.Services
                 }
                 else
                 {
-                    if(status == true)
+                    if(status)
                     {
                         user.IsActive = true;
                     }
@@ -308,8 +343,7 @@ namespace MinimalChatApplication.Data.Services
             }
             catch (Exception ex)
             {
-                // Log or handle exceptions
-                return (false, StatusCodes.Status500InternalServerError, "Internal server error");
+                return (false, StatusCodes.Status500InternalServerError, $"Internal server error. {ex.Message}");
             }
         }
     }
