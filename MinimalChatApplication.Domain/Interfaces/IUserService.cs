@@ -124,5 +124,8 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// the HTTP status code, and a message describing the outcome of the user status update.
         /// </returns>
         Task<ServiceResponse<object>> UpdateUserStatusAsync(string loggedInUserId, bool status);
+
+
+        Task<UpdateProfileDto> UpdateUserProfileAsync(UpdateProfileDto updateProfileDto);
     }
 }

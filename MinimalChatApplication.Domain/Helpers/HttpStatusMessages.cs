@@ -57,6 +57,15 @@
         public const string LogNotFound = "No logs found";
         public const string LogRetrievedSuccessfully = "Log list received successfully";
 
+        //Retrieve Profile Details
+        public const string ProfileDetailsRetrieved = "Log list received successfully";
+        public const string ProfileNotFound = "User or profile not found";
+
+        // Update Profile 
+        public const string UpdateProfileValidationFailure = "Update profile failed due to validation errors";
+        public const string ProfileUpdatedSuccessfullly = "Profile updated successfully";
+        public const string ProfileUpdationFailed = "User not found or profile update failed";
+
         // Common
         public const string InternalServerError = "An error occurred while processing your request.";
         public const string UnauthorizedAccess = "Unauthorized access";
