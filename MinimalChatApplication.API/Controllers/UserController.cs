@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MinimalChatApplication.API.Hubs;
 using MinimalChatApplication.Domain.Dtos;
+using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
 using System.Security.Claims;
 
@@ -30,6 +31,8 @@ namespace MinimalChatApplication.API.Controllers
             _mapper = mapper;
         }
 
+        #region User Authentication
+
         /// <summary>
         /// Registers a new user via a POST request.
         /// </summary>
@@ -51,19 +54,19 @@ namespace MinimalChatApplication.API.Controllers
                     return BadRequest(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
-                        Message = "Registration failed due to validation errors",
+                        Message = HttpStatusMessages.RegistrationFailedValidation,
                         Data = null
                     });
                 }
                 var result = await _userService.RegisterUserAsync(registerDto);
 
-                if (result.success)
+                if (result.Succeeded)
                 {
                     return StatusCode(result.StatusCode, new ApiResponse<object>
                     {
                         StatusCode = result.StatusCode,
-                        Message = result.message,
-                        Data = result.userResponseDto
+                        Message = result.Message,
+                        Data = result.Data
                     });
                 }
                 else
@@ -71,7 +74,7 @@ namespace MinimalChatApplication.API.Controllers
                     return StatusCode(result.StatusCode, new ApiResponse<object>
                     {
                         StatusCode = result.StatusCode,
-                        Message = result.message,
+                        Message = result.Message,
                         Data = null
                     });
                 }
@@ -81,7 +84,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
                     Data = null
                 });
             }
@@ -108,7 +111,7 @@ namespace MinimalChatApplication.API.Controllers
                     return BadRequest(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
-                        Message = "Login failed due to validation errors",
+                        Message = HttpStatusMessages.LoginFailedValidation,
                         Data = null
                     });
                 }
@@ -151,70 +154,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred while processing your request. {ex.Message}",
-                    Data = null
-                });
-            }
-        }
-
-
-        /// <summary>
-        /// Retrieves a list of users excluding the current user or returns a message indicating no users found.
-        /// </summary>
-        /// <returns>
-        /// An IActionResult containing user information if users are found, or a message indicating no users found.
-        /// </returns>
-        /// <remarks>
-        /// This method is protected by the [Authorize] attribute and can only be accessed by authenticated users.
-        /// It retrieves the unique identifier of the current user and fetches a list of users excluding the current user.
-        /// If users are found, their information is returned; otherwise, a message indicating no users found is returned.
-        /// </remarks>
-        [Authorize]
-        [HttpGet("user")]
-        public async Task<IActionResult> GetAllUserAsync()
-        {
-            try
-            {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (userId == null)
-                {
-                    return Unauthorized(new ApiResponse<object>
-                    {
-                        StatusCode = StatusCodes.Status401Unauthorized,
-                        Message = "Unauthorized access",
-                        Data = null
-                    });
-                }
-
-                var users = await _userService.GetUsersExceptCurrentUserAsync(userId);
-
-
-                if (users != null && users.Any())
-                {
-                    await _messageService.UpdateChatStatusAsync(userId, null, null);
-                    return Ok(new ApiResponse<IEnumerable<UserChatResponseDto>>
-                    {
-                        StatusCode = StatusCodes.Status200OK,
-                        Message = "User list retrieved successfully",
-                        Data = users
-                    });
-                }
-                else
-                {
-                    return NotFound(new ApiResponse<object>
-                    {
-                        StatusCode = StatusCodes.Status404NotFound,
-                        Message = "No users found",
-                        Data = null
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
-                {
-                    StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
                     Data = null
                 });
             }
@@ -253,7 +193,7 @@ namespace MinimalChatApplication.API.Controllers
                 GoogleJsonWebSignature.Payload payload = GoogleJsonWebSignature.ValidateAsync(idToken, settings).Result;
                 if (payload == null)
                 {
-                    return BadRequest(new { Message = "Invalid Google Credientials. Invalid Token!" });
+                    return BadRequest(new { Message = HttpStatusMessages.InvalidGoogleCredentials });
                 }
 
                 var existingUser = await _userService.GetUserByEmailAsync(payload.Email);
@@ -267,7 +207,7 @@ namespace MinimalChatApplication.API.Controllers
                     };
 
                     var result = await _userService.RegisterUserAsync(registerDto);
-                    if (result.success)
+                    if (result.Succeeded)
                     {
                         var user = await _userService.GetUserByEmailAsync(payload.Email);
 
@@ -285,7 +225,7 @@ namespace MinimalChatApplication.API.Controllers
 
                         return Ok(new
                         {
-                            message = "User login Successfull.",
+                            message = HttpStatusMessages.LoginSuccessful,
                             accessToken = jwtToken,
                             refreshToken,
                             expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
@@ -297,7 +237,7 @@ namespace MinimalChatApplication.API.Controllers
                         return StatusCode(result.StatusCode, new ApiResponse<object>
                         {
                             StatusCode = result.StatusCode,
-                            Message = result.message,
+                            Message = result.Message,
                             Data = null
                         });
                     }
@@ -319,7 +259,7 @@ namespace MinimalChatApplication.API.Controllers
 
                     return Ok(new
                     {
-                        message = "User login Successfull.",
+                        message = HttpStatusMessages.LoginSuccessful,
                         accessToken = jwtToken,
                         refreshToken,
                         expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
@@ -332,7 +272,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
                     Data = null
                 });
             }
@@ -355,13 +295,13 @@ namespace MinimalChatApplication.API.Controllers
             {
                 if (accessToken == null && refreshToken == null)
                 {
-                    return BadRequest("Invalid client request");
+                    return BadRequest(new { Message = HttpStatusMessages.InvalidClientRequest });
                 }
 
                 var principal = _userService.GetPrincipalFromExpiredToken(accessToken);
                 if (principal == null)
                 {
-                    return BadRequest("Invalid claim principle");
+                    return BadRequest(new { Message = HttpStatusMessages.InvalidClaimPrincipal });
                 }
 
                 string username = principal.Identity.Name;
@@ -370,7 +310,7 @@ namespace MinimalChatApplication.API.Controllers
 
                 if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.Now)
                 {
-                    return BadRequest("Invalid access token or refresh token");
+                    return BadRequest(new { Message = HttpStatusMessages.InvalidAccessTokenOrRefreshToken });
                 }
 
                 var newAccessToken = _userService.GenerateJwtToken(user);
@@ -389,12 +329,76 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Message = $"{HttpStatusMessages.InternalServerError}  {ex.Message}",
                     Data = null
                 });
             }
         }
 
+        #endregion User Authentication
+
+
+        /// <summary>
+        /// Retrieves a list of users excluding the current user or returns a message indicating no users found.
+        /// </summary>
+        /// <returns>
+        /// An IActionResult containing user information if users are found, or a message indicating no users found.
+        /// </returns>
+        /// <remarks>
+        /// This method is protected by the [Authorize] attribute and can only be accessed by authenticated users.
+        /// It retrieves the unique identifier of the current user and fetches a list of users excluding the current user.
+        /// If users are found, their information is returned; otherwise, a message indicating no users found is returned.
+        /// </remarks>
+        [Authorize]
+        [HttpGet("user")]
+        public async Task<IActionResult> GetAllUserAsync()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status401Unauthorized,
+                        Message = HttpStatusMessages.UnauthorizedAccess,
+                        Data = null
+                    });
+                }
+
+                var users = await _userService.GetUsersExceptCurrentUserAsync(userId);
+
+
+                if (users != null && users.Any())
+                {
+                    await _messageService.UpdateChatStatusAsync(userId, null, null);
+                    return Ok(new ApiResponse<IEnumerable<UserChatResponseDto>>
+                    {
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = HttpStatusMessages.UserListRetrievedSuccessfully,
+                        Data = users
+                    });
+                }
+                else
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status404NotFound,
+                        Message = HttpStatusMessages.NoUsersFound,
+                        Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
+                    Data = null
+                });
+            }
+        }
 
         /// <summary>
         /// Updates the status of the authenticated user and broadcasts the status to all connected clients using SignalR.
@@ -417,13 +421,13 @@ namespace MinimalChatApplication.API.Controllers
                 return Unauthorized(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status401Unauthorized,
-                    Message = "Unauthorized access",
+                    Message = HttpStatusMessages.UnauthorizedAccess,
                     Data = null
                 });
             }
 
             var result = await _userService.UpdateUserStatusAsync(userId, false);
-            if (result.Success)
+            if (result.Succeeded)
             {
                 await _messageService.UpdateChatStatusAsync(userId, null, null);
 

@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using Azure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using MinimalChatApplication.Domain.Dtos;
+using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 using System.IdentityModel.Tokens.Jwt;
@@ -47,18 +49,24 @@ namespace MinimalChatApplication.Data.Services
         /// </summary>
         /// <param name="registerDto">The registration data provided by the user.</param>
         /// <returns>
-        /// A tuple containing the registration status, HTTP status code, a message indicating the result, and user information.
-        /// - success (bool): True if registration is successful; otherwise, false.
+        /// A structured response containing the registration status, HTTP status code, a message indicating the result, and user information.
+        /// - Succeeded (bool): True if registration is successful; otherwise, false.
         /// - StatusCode (int): The HTTP status code associated with the registration outcome.
-        /// - message (string): A message providing details about the registration outcome.
-        /// - userResponseDto (UserResponseDto): User information including user ID, name, and email (null if registration failed).
+        /// - Message (string): A message providing details about the registration outcome.
+        /// - Data (UserResponseDto): User information including user ID, name, and email (null if registration failed).
         /// </returns>
-        public async Task<(bool success, int StatusCode, string message, UserResponseDto userResponseDto)> RegisterUserAsync(RegisterDto registerDto)
+        public async Task<ServiceResponse<UserResponseDto>> RegisterUserAsync(RegisterDto registerDto)
         {
+            var response = new ServiceResponse<UserResponseDto>();
+
             var userExists = await _userManager.FindByEmailAsync(registerDto.Email);
             if (userExists != null)
             {
-                return (false, StatusCodes.Status409Conflict, "Registration failed because the email is already registered", null);
+                response.Succeeded = false;
+                response.StatusCode = StatusCodes.Status409Conflict;
+                response.Message = HttpStatusMessages.EmailAlreadyExist;
+                response.Data = null;
+                return response;
             }
 
             var user = new ChatApplicationUser()
@@ -81,14 +89,20 @@ namespace MinimalChatApplication.Data.Services
             if (result.Succeeded)
             {
                 var userResponseDto = _mapper.Map<UserResponseDto>(user);
-                return (true, StatusCodes.Status200OK, "Registration successful", userResponseDto);
+                response.Succeeded = true;
+                response.StatusCode = StatusCodes.Status200OK;
+                response.Message = HttpStatusMessages.RegistrationSuccess;
+                response.Data = userResponseDto;
             }
             else
             {
                 var errorMessages = result.Errors.Select(error => error.Description);
-                var message = $"Registration failed: {string.Join(", ", errorMessages)}";
-                return (false, StatusCodes.Status400BadRequest, message, null);
+                response.Succeeded = false;
+                response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Message = $"{HttpStatusMessages.RegistrationFailure} {string.Join(", ", errorMessages)}";
+                response.Data = null;
             }
+            return response;
         }
 
 
@@ -98,37 +112,47 @@ namespace MinimalChatApplication.Data.Services
         /// <param name="email">The email address of the user attempting to log in.</param>
         /// <param name="password">The user's password for authentication.</param>
         /// <returns>
-        /// A tuple containing the login status and a message indicating the result.
+        /// A structured response containing the login status, HTTP status code, and a message indicating the result.
         /// - Succeeded (bool): True if the login is successful; otherwise, false.
         /// - StatusCode (int): The HTTP status code indicating the outcome of the login attempt.
         /// - Message (string): A message providing details about the login outcome.
+        /// - Data (UserResponseDto): User information, which is null for successful logins (or if there was a problem updating user status).
         /// </returns>
-        public async Task<(bool Succeeded, int StatusCode, string Message)> LoginAsync(string email, string password)
+        public async Task<ServiceResponse<object>> LoginAsync(string email, string password)
         {
+            var response = new ServiceResponse<object>();
+
             var user = await _userManager.FindByEmailAsync(email);
 
             if (user == null)
             {
-                return (false, StatusCodes.Status400BadRequest, "Login failed due to incorrect credentials");
+                response.Succeeded = false;
+                response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Message = HttpStatusMessages.LoginFailedIncorrectCredentials;
+                response.Data = null;
+                return response;
             }
 
             var result = await _signInManager.PasswordSignInAsync(user, password, isPersistent: false, lockoutOnFailure: false);
 
-            if (result.Succeeded)
-            {
-                user.IsActive = true;
-                var updateResult = await _userManager.UpdateAsync(user);
+            user.IsActive = true;
+            var updateResult = await _userManager.UpdateAsync(user);
 
-                if (!updateResult.Succeeded)
-                {
-                    return (false, StatusCodes.Status400BadRequest, "Failed to update user status");
-                }
-                return (true, StatusCodes.Status200OK, "Login successful");
+            if (result.Succeeded && updateResult.Succeeded)
+            {
+                response.Succeeded = true;
+                response.StatusCode = StatusCodes.Status200OK;
+                response.Message = HttpStatusMessages.LoginSuccessful;
+                response.Data = null;
             }
             else
             {
-                return (false, StatusCodes.Status400BadRequest, "Login failed due to incorrect credentials");
+                response.Succeeded = false;
+                response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Message = HttpStatusMessages.LoginFailedIncorrectCredentials;
+                response.Data = null;
             }
+            return response;
         }
 
 
@@ -142,6 +166,17 @@ namespace MinimalChatApplication.Data.Services
         public async Task<ChatApplicationUser> GetUserByEmailAsync(string email)
         {
             return await _userManager.FindByEmailAsync(email);
+        }
+
+
+        /// <summary>
+        /// Asynchronously retrieves a user by their unique ID.
+        /// </summary>
+        /// <param name="userId">The ID of the user to retrieve.</param>
+        /// <returns>The <see cref="ChatApplicationUser"/> with the specified user ID, or null if not found.</returns>
+        public async Task<ChatApplicationUser> GetUserByIdAsync(string userId)
+        {
+            return await _userManager.FindByIdAsync(userId);
         }
 
 
@@ -308,22 +343,27 @@ namespace MinimalChatApplication.Data.Services
         /// <param name="loggedInUserId">The ID of the user whose status is being updated.</param>
         /// <param name="status">The new status of the user (true for active, false for inactive).</param>
         /// <returns>
-        /// A tuple containing a boolean indicating the success of the operation, the HTTP status code,
-        /// and a message describing the outcome of the user status update.
+        /// A structured response indicating the success of the operation, including a boolean value,
+        /// the HTTP status code, and a message describing the outcome of the user status update.
         /// </returns>
-        public async Task<(bool Success, int StatusCode, string Message)> UpdateUserStatusAsync(string loggedInUserId, bool status)
+        public async Task<ServiceResponse<object>> UpdateUserStatusAsync(string loggedInUserId, bool status)
         {
+            var response = new ServiceResponse<object>();
             try
             {
                 var user = await _userManager.FindByIdAsync(loggedInUserId);
 
                 if (user == null)
                 {
-                    return (false, StatusCodes.Status404NotFound, "Current user not found");
+                    response.Succeeded = false;
+                    response.StatusCode = StatusCodes.Status404NotFound;
+                    response.Message = HttpStatusMessages.CurrentUserNotFound;
+                    response.Data = null;
+                    return response;
                 }
                 else
                 {
-                    if(status)
+                    if (status)
                     {
                         user.IsActive = true;
                     }
@@ -331,19 +371,33 @@ namespace MinimalChatApplication.Data.Services
                     {
                         user.IsActive = false;
                     }
-                }
-                var updateResult = await _userManager.UpdateAsync(user);
 
-                if (!updateResult.Succeeded)
-                {
-                    return (false, StatusCodes.Status400BadRequest, "Failed to update user status");
-                }
+                    var updateResult = await _userManager.UpdateAsync(user);
 
-                return (true, StatusCodes.Status200OK, "User statuses updated successfully");
+                    if (updateResult.Succeeded)
+                    {
+                        response.Succeeded = true;
+                        response.StatusCode = StatusCodes.Status200OK;
+                        response.Message = HttpStatusMessages.UserStatusUpdatedSuccessfully;
+                        response.Data = null;
+                    }
+                    else
+                    {
+                        response.Succeeded = false;
+                        response.StatusCode = StatusCodes.Status400BadRequest;
+                        response.Message = HttpStatusMessages.FailedToUpdateUserStatus;
+                        response.Data = null;
+                    }
+                    return response;
+                }
             }
             catch (Exception ex)
             {
-                return (false, StatusCodes.Status500InternalServerError, $"Internal server error. {ex.Message}");
+                response.Succeeded = false;
+                response.StatusCode = StatusCodes.Status500InternalServerError;
+                response.Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}";
+                response.Data = null;
+                return response;
             }
         }
     }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using MinimalChatApplication.Domain.Dtos;
+using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 using System.Linq.Expressions;
@@ -63,39 +64,56 @@ namespace MinimalChatApplication.Data.Services
 
 
         /// <summary>
-        /// Edits a message with the given ID, updating its content.
+        /// Asynchronously edits a message with the given ID, updating its content.
         /// </summary>
         /// <param name="messageId">The ID of the message to edit.</param>
         /// <param name="userId">The ID of the user attempting to edit the message.</param>
         /// <param name="newContent">The updated content for the message.</param>
         /// <returns>
-        /// A tuple containing a success flag, HTTP status code, and a message indicating the result of the operation.
+        /// A service response containing a success flag, HTTP status code, and a message indicating the result of the operation.
         /// </returns>
-        public async Task<(bool success, int StatusCode, string message)> EditMessageAsync(int messageId, string userId, string newContent)
+        public async Task<ServiceResponse<object>> EditMessageAsync(int messageId, string userId, string newContent)
         {
-            // Check if the message with the given ID exists
+            var response = new ServiceResponse<object>();
+
             var message = await _messageRepository.GetFirstOrDefaultAsync(m => m.Id == messageId);
 
             if (message != null)
             {
-                // Check if the user is the sender of the message
                 if (message.SenderId != userId)
                 {
-                    return (false, StatusCodes.Status401Unauthorized, "Unauthorized access");
+                    response.Succeeded = false;
+                    response.StatusCode = StatusCodes.Status401Unauthorized;
+                    response.Message = HttpStatusMessages.UnauthorizedAccess;
+                    response.Data = null;
                 }
                 if (newContent != null)
                 {
                     message.Content = newContent;
                     _messageRepository.Update(message);
                     await _messageRepository.SaveChangesAsync();
-                    return (true, StatusCodes.Status200OK, "Message edited successfully");
+
+                    response.Succeeded = true;
+                    response.StatusCode = StatusCodes.Status200OK;
+                    response.Message = HttpStatusMessages.MessageEditedSuccessfully;
+                    response.Data = null;
                 }
                 else
                 {
-                    return (false, StatusCodes.Status400BadRequest, "Message editing failed due to validation errors");
+                    response.Succeeded = false;
+                    response.StatusCode = StatusCodes.Status400BadRequest;
+                    response.Message = HttpStatusMessages.MessageEditingValidationFailure;
+                    response.Data = null;
                 }
             }
-            return (false, StatusCodes.Status404NotFound, "Message not found");
+            else
+            {
+                response.Succeeded = false;
+                response.StatusCode = StatusCodes.Status404NotFound;
+                response.Message = HttpStatusMessages.MessageNotFound;
+                response.Data = null;
+            }
+            return response;
         }
 
 
@@ -105,17 +123,26 @@ namespace MinimalChatApplication.Data.Services
         /// <param name="messageId">The ID of the message to delete.</param>
         /// <param name="userId">The ID of the user attempting to delete the message.</param>
         /// <returns>
-        /// A tuple containing a success flag, HTTP status code, and a message indicating the result of the operation.
+        /// A service response containing the result of the operation.
+        /// - Succeeded (bool): True if the message is successfully deleted; otherwise, false.
+        /// - StatusCode (int): The HTTP status code indicating the outcome of the deletion.
+        /// - Message (string): A message describing the result of the operation.
+        /// - Data (MessageResponseDto): The deleted message data (null if the operation is not successful).
         /// </returns>
-        public async Task<(bool success, int StatusCode, string message, MessageResponseDto deletedMessage)> DeleteMessageAsync(int messageId, string userId)
+        public async Task<ServiceResponse<MessageResponseDto>> DeleteMessageAsync(int messageId, string userId)
         {
+            var response = new ServiceResponse<MessageResponseDto>();
+
             var message = await _messageRepository.GetFirstOrDefaultAsync(m => m.Id == messageId);
 
             if (message != null)
             {
                 if (message.SenderId != userId)
                 {
-                    return (false, StatusCodes.Status401Unauthorized, "Unauthorized access", null);
+                    response.Succeeded = false;
+                    response.StatusCode = StatusCodes.Status401Unauthorized;
+                    response.Message = HttpStatusMessages.UnauthorizedAccess;
+                    response.Data = null;
                 }
                 else
                 {
@@ -124,11 +151,22 @@ namespace MinimalChatApplication.Data.Services
                     _messageRepository.Remove(message);
                     await _messageRepository.SaveChangesAsync();
 
-                    return (true, StatusCodes.Status200OK, "Message deleted successfully", deletedMessageDto);
+                    response.Succeeded = true;
+                    response.StatusCode = StatusCodes.Status200OK;
+                    response.Message = HttpStatusMessages.MessageDeletedSuccessfully;
+                    response.Data = deletedMessageDto;
                 }
             }
-            return (false, StatusCodes.Status404NotFound, "Message not found", null);
+            else
+            {
+                response.Succeeded = false;
+                response.StatusCode = StatusCodes.Status404NotFound;
+                response.Message = HttpStatusMessages.MessageNotFound;
+                response.Data = null;
+            }
+            return response;
         }
+
 
 
 
@@ -139,12 +177,12 @@ namespace MinimalChatApplication.Data.Services
         /// <param name="receiverId">The ID of the message receiver.</param>
         /// <param name="before">Optional. Retrieves messages created before this date.</param>
         /// <param name="count">The maximum number of messages to retrieve.</param>
-        /// <param name="sort">The sorting order for the retrieved messages.</param>
+        /// <param name="sort">The sorting order for the retrieved messages ("asc" or "desc").</param>
         /// <returns>
-        /// A tuple containing the conversation history as a collection of <see cref="MessageResponseDto"/> and a boolean
-        /// indicating the user status of the receiver.
+        /// A collection of <see cref="MessageResponseDto"/> representing the conversation history, 
+        /// and a boolean indicating the user status of the receiver.
         /// </returns>
-        public async Task<(IEnumerable<MessageResponseDto>, bool status)> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
+        public async Task<IEnumerable<MessageResponseDto>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort)
         {
             Expression<Func<Message, bool>> filter =
                       m => (m.SenderId == loggedInUserId && m.ReceiverId == receiverId) ||
@@ -168,11 +206,9 @@ namespace MinimalChatApplication.Data.Services
             conversationHistory = conversationHistory.Take(count);
             conversationHistory = conversationHistory.OrderBy(m => m.Id);
 
-            var userStatus = await _userService.GetUserStatusAsync(receiverId);
-
             var messageResponseDtos = _mapper.Map<IEnumerable<MessageResponseDto>>(conversationHistory);
 
-            return (messageResponseDtos, userStatus);
+            return messageResponseDtos;
         }
 
 
@@ -201,13 +237,14 @@ namespace MinimalChatApplication.Data.Services
         /// Asynchronously updates the chat status for a user, marking messages as read and managing unread message counts.
         /// </summary>
         /// <param name="userId">The ID of the user for whom the chat status is being updated.</param>
-        /// <param name="currentUserId">The ID of the currently active user.</param>
-        /// <param name="previousUserId">The ID of the previously active user (optional).</param>
+        /// <param name "currentUserId">The ID of the currently active user.</param>
+        /// <param name "previousUserId">The ID of the previously active user (optional).</param>
         /// <returns>
-        /// A tuple containing the success status, HTTP status code, and a message describing the outcome of the chat status update.
+        /// A <see cref="ServiceResponse{object}"/> indicating the success status, HTTP status code, and a message describing the outcome of the chat status update.
         /// </returns>
-        public async Task<(bool Success, int StatusCode, string Message)> UpdateChatStatusAsync(string userId, string currentUserId, string previousUserId)
+        public async Task<ServiceResponse<object>> UpdateChatStatusAsync(string userId, string currentUserId, string previousUserId)
         {
+            var response = new ServiceResponse<object>();
             try
             {
                 if (userId != null && currentUserId == null && previousUserId == null)
@@ -221,9 +258,12 @@ namespace MinimalChatApplication.Data.Services
                     }
 
                     await _unreadMessageRepository.SaveChangesAsync();
-                    return (true, StatusCodes.Status200OK, "Chat status updated.");
+                    response.Succeeded = true;
+                    response.StatusCode = StatusCodes.Status200OK;
+                    response.Message = HttpStatusMessages.ChatStatusUpdated;
+                    response.Data = null;
+                    return response;
                 }
-
 
                 await CreateSenderChatAsync(userId, currentUserId);
                 await CreateReceiverChatAsync(userId, currentUserId);
@@ -239,7 +279,11 @@ namespace MinimalChatApplication.Data.Services
                     }
                     else
                     {
-                        return (false, StatusCodes.Status404NotFound, "Chat not exists");
+                        response.Succeeded = false;
+                        response.StatusCode = StatusCodes.Status404NotFound;
+                        response.Message = HttpStatusMessages.ChatNotExists;
+                        response.Data = null;
+                        return response;
                     }
                 }
                 else
@@ -263,12 +307,19 @@ namespace MinimalChatApplication.Data.Services
                     }
                 }
                 await _unreadMessageRepository.SaveChangesAsync();
-                return (true, StatusCodes.Status200OK, "Chat status updated.");
+                response.Succeeded = true;
+                response.StatusCode = StatusCodes.Status200OK;
+                response.Message = HttpStatusMessages.ChatStatusUpdated;
+                response.Data = null;
+                return response;
 
             }
             catch (Exception ex)
             {
-                return (false, StatusCodes.Status500InternalServerError, $"Internal server error. {ex.Message}");
+                response.Succeeded = false;
+                response.StatusCode = StatusCodes.Status500InternalServerError;
+                response.Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}";
+                return response;
             }
         }
 
@@ -337,14 +388,13 @@ namespace MinimalChatApplication.Data.Services
         /// <param name="senderId">The ID of the sender user.</param>
         /// <param name="receiverId">The ID of the receiver user.</param>
         /// <returns>
-        /// A tuple containing a <see cref="UserChatResponseDto"/> with the updated message count and read status,
-        /// and a boolean indicating whether the receiver user is currently logged in.
+        /// A <see cref="UserChatResponseDto"/> containing the updated message count and read status for the receiver user,
+        /// along with a boolean indicating whether the receiver user is currently logged in.
         /// </returns>
-        public async Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> IncreaseMessageCountAsync(string senderId, string receiverId)
+        public async Task<UserChatResponseDto> IncreaseMessageCountAsync(string senderId, string receiverId)
         {
             var receiverChatExists = await GetReceiverMessageChatAsync(senderId, receiverId);
             UserChatResponseDto userChatResponseDto;
-
 
             if (receiverChatExists != null)
             {
@@ -376,9 +426,9 @@ namespace MinimalChatApplication.Data.Services
                     IsRead = receiverChatExists.IsRead,
                 };
                 await _unreadMessageRepository.SaveChangesAsync();
-                return (userChatResponseDto, receiverLoggedIn.IsActive);
+                return userChatResponseDto;
             }
-            return (null, false);
+            return null;
         }
 
 
@@ -391,11 +441,10 @@ namespace MinimalChatApplication.Data.Services
         /// A tuple containing a <see cref="UserChatResponseDto"/> with the updated message count and read status,
         /// and a boolean indicating whether the receiver user is currently logged in.
         /// </returns>
-        public async Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> DecreaseMessageCountAsync(string senderId, string receiverId)
+        public async Task<UserChatResponseDto> DecreaseMessageCountAsync(string senderId, string receiverId)
         {
             var receiverChatExists = await GetReceiverMessageChatAsync(senderId, receiverId);
             UserChatResponseDto userChatResponseDto;
-
 
             if (receiverChatExists != null)
             {
@@ -427,9 +476,9 @@ namespace MinimalChatApplication.Data.Services
                     IsRead = receiverChatExists.IsRead,
                 };
                 await _unreadMessageRepository.SaveChangesAsync();
-                return (userChatResponseDto, receiverLoggedIn.IsActive);
+                return userChatResponseDto;
             }
-            return (null, false);
+            return null;
         }
 
         /// <summary>
