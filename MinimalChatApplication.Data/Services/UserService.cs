@@ -400,5 +400,34 @@ namespace MinimalChatApplication.Data.Services
                 return response;
             }
         }
+
+
+        public async Task<UpdateProfileDto> UpdateUserProfileAsync(UpdateProfileDto updateProfileDto)
+        {
+            var user = await _userManager.FindByIdAsync(updateProfileDto.UserId);
+
+            if (user == null)
+            {
+                return null; 
+            }
+
+            user.StatusMessage = updateProfileDto.StatusMessage;
+
+            var result = await _userManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+            {
+                return new UpdateProfileDto
+                {
+                    UserId = user.Id,
+                    StatusMessage = user.StatusMessage
+                };
+            }
+            else
+            {
+                return null; 
+            }
+        }
+
     }
 }

@@ -6,13 +6,9 @@ using System.Threading.Tasks;
 
 namespace MinimalChatApplication.Domain.Dtos
 {
-    public class UserChatResponseDto
+    public class UpdateProfileDto
     {
         public string UserId { get; set; }
-        public string Name { get; set; }
-        public string Email { get; set; }
         public string StatusMessage { get; set; }
-        public int MessageCount { get; set; }
-        public bool IsRead { get; set; }
     }
 }

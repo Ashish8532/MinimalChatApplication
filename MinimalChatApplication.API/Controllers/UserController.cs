@@ -476,5 +476,141 @@ namespace MinimalChatApplication.API.Controllers
                 }
             }
         }
+
+
+        /// <summary>
+        /// Retrieves the profile details of the authenticated user.
+        /// </summary>
+        /// <returns>
+        /// An IActionResult containing the profile details if the user is found, or a "Not Found" response if the user's profile is not found.
+        /// </returns>
+        /// <remarks>
+        /// This method is protected by the [Authorize] attribute and can only be accessed by authenticated users.
+        /// It retrieves the unique identifier of the current user and fetches the user's profile details.
+        /// If the user is found, their profile details are returned in the response. If the user's profile is not found, a "Not Found" response is returned with an appropriate message.
+        /// </remarks>
+        [Authorize]
+        [HttpGet("profile-details")]
+        public async Task<IActionResult> GetProfileDetailsAsync()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userId == null)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status401Unauthorized,
+                        Message = HttpStatusMessages.UnauthorizedAccess,
+                        Data = null
+                    });
+                }
+
+                var user = await _userService.GetUserByIdAsync(userId);
+
+                if (user != null)
+                {
+                    var profileDetails = _mapper.Map<UserResponseDto>(user);
+
+                    return Ok(new ApiResponse<UserResponseDto>
+                    {
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = HttpStatusMessages.ProfileDetailsRetrieved,
+                        Data = profileDetails
+                    });
+                }
+                else
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status404NotFound,
+                        Message = HttpStatusMessages.ProfileNotFound,
+                        Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
+
+        /// <summary>
+        /// Updates the profile information of the authenticated user.
+        /// </summary>
+        /// <param name="updateProfileDto">The updated profile information provided by the user.</param>
+        /// <returns>
+        /// An IActionResult containing the result of the profile update:
+        /// - 200 OK if the profile is updated successfully.
+        /// - 400 Bad Request if the provided data is invalid.
+        /// - 401 Unauthorized if the user is not authorized to perform the update.
+        /// - 404 Not Found if the user's profile is not found.
+        /// - 500 Internal Server Error if an unexpected error occurs.
+        /// </returns>
+        [Authorize]
+        [HttpPut("update-profile")]
+        public async Task<IActionResult> UpdateProfileAsync([FromBody] UpdateProfileDto updateProfileDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Message = HttpStatusMessages.UpdateProfileValidationFailure,
+                        Data = null
+                    });
+                }
+
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userId == null || userId != updateProfileDto.UserId)
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status401Unauthorized,
+                        Message = HttpStatusMessages.UnauthorizedAccess,
+                        Data = null
+                    });
+                }
+
+                var result = await _userService.UpdateUserProfileAsync(updateProfileDto);
+
+                if (result != null)
+                {
+                    return Ok(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = HttpStatusMessages.ProfileUpdatedSuccessfullly,
+                        Data = result
+                    });
+                }
+                else
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        StatusCode = StatusCodes.Status404NotFound,
+                        Message = HttpStatusMessages.ProfileUpdationFailed,
+                        Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
+                    Data = null
+                });
+            }
+        }
+
     }
 }
