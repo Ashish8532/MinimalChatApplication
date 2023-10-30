@@ -21,15 +21,15 @@ namespace MinimalChatApplication.Domain.Interfaces
         Task<MessageResponseDto> SendMessageAsync(MessageDto messageDto, string senderId);
 
         /// <summary>
-        /// Edits a message with the given ID, updating its content.
+        /// Asynchronously edits a message with the given ID, updating its content.
         /// </summary>
         /// <param name="messageId">The ID of the message to edit.</param>
         /// <param name="userId">The ID of the user attempting to edit the message.</param>
         /// <param name="newContent">The updated content for the message.</param>
         /// <returns>
-        /// A tuple containing a success flag, HTTP status code, and a message indicating the result of the operation.
+        /// A service response containing a success flag, HTTP status code, and a message indicating the result of the operation.
         /// </returns>
-        Task<(bool success, int StatusCode, string message)> EditMessageAsync(int messageId, string userId,  string newContent);
+        Task<ServiceResponse<object>> EditMessageAsync(int messageId, string userId,  string newContent);
 
         /// <summary>
         /// Deletes a message with the given ID if it exists and if the user is the sender.
@@ -39,7 +39,7 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <returns>
         /// A tuple containing a success flag, HTTP status code, and a message indicating the result of the operation.
         /// </returns>
-        Task<(bool success, int StatusCode, string message, MessageResponseDto deletedMessage)> DeleteMessageAsync(int messageId, string userId);
+        Task<ServiceResponse<MessageResponseDto>> DeleteMessageAsync(int messageId, string userId);
 
 
         /// <summary>
@@ -49,12 +49,12 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <param name="receiverId">The ID of the message receiver.</param>
         /// <param name="before">Optional. Retrieves messages created before this date.</param>
         /// <param name="count">The maximum number of messages to retrieve.</param>
-        /// <param name="sort">The sorting order for the retrieved messages.</param>
+        /// <param name="sort">The sorting order for the retrieved messages ("asc" or "desc").</param>
         /// <returns>
-        /// A tuple containing the conversation history as a collection of <see cref="MessageResponseDto"/> and a boolean
-        /// indicating the user status of the receiver.
+        /// A collection of <see cref="MessageResponseDto"/> representing the conversation history, 
+        /// and a boolean indicating the user status of the receiver.
         /// </returns>
-        Task<(IEnumerable<MessageResponseDto>, bool status)> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort);
+        Task<IEnumerable<MessageResponseDto>> GetConversationHistoryAsync(string loggedInUserId, string receiverId, DateTime? before, int count, string sort);
 
 
         /// <summary>
@@ -72,12 +72,12 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// Asynchronously updates the chat status for a user, marking messages as read and managing unread message counts.
         /// </summary>
         /// <param name="userId">The ID of the user for whom the chat status is being updated.</param>
-        /// <param name="currentUserId">The ID of the currently active user.</param>
-        /// <param name="previousUserId">The ID of the previously active user (optional).</param>
+        /// <param name "currentUserId">The ID of the currently active user.</param>
+        /// <param name "previousUserId">The ID of the previously active user (optional).</param>
         /// <returns>
-        /// A tuple containing the success status, HTTP status code, and a message describing the outcome of the chat status update.
+        /// A <see cref="ServiceResponse{object}"/> indicating the success status, HTTP status code, and a message describing the outcome of the chat status update.
         /// </returns>
-        Task<(bool Success, int StatusCode, string Message)> UpdateChatStatusAsync(string userId, string currentUserId, string previousUserId);
+        Task<ServiceResponse<object>> UpdateChatStatusAsync(string userId, string currentUserId, string previousUserId);
 
 
         /// <summary>
@@ -86,10 +86,10 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <param name="senderId">The ID of the sender user.</param>
         /// <param name="receiverId">The ID of the receiver user.</param>
         /// <returns>
-        /// A tuple containing a <see cref="UserChatResponseDto"/> with the updated message count and read status,
-        /// and a boolean indicating whether the receiver user is currently logged in.
+        /// A <see cref="UserChatResponseDto"/> containing the updated message count and read status for the receiver user,
+        /// along with a boolean indicating whether the receiver user is currently logged in.
         /// </returns>
-        Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> IncreaseMessageCountAsync(string senderId, string receiverId);
+        Task<UserChatResponseDto> IncreaseMessageCountAsync(string senderId, string receiverId);
 
 
         /// <summary>
@@ -101,6 +101,6 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// A tuple containing a <see cref="UserChatResponseDto"/> with the updated message count and read status,
         /// and a boolean indicating whether the receiver user is currently logged in.
         /// </returns>
-        Task<(UserChatResponseDto userChatResponseDto, bool isLoggedIn)> DecreaseMessageCountAsync(string senderId, string receiverId);
+        Task<UserChatResponseDto> DecreaseMessageCountAsync(string senderId, string receiverId);
     }
 }

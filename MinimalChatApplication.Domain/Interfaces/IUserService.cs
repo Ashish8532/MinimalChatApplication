@@ -14,25 +14,27 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// </summary>
         /// <param name="registerDto">The registration data provided by the user.</param>
         /// <returns>
-        /// A tuple containing the registration status, HTTP status code, a message indicating the result, and user information.
-        /// - success (bool): True if registration is successful; otherwise, false.
+        /// A structured response containing the registration status, HTTP status code, a message indicating the result, and user information.
+        /// - Succeeded (bool): True if registration is successful; otherwise, false.
         /// - StatusCode (int): The HTTP status code associated with the registration outcome.
-        /// - message (string): A message providing details about the registration outcome.
-        /// - userResponseDto (UserResponseDto): User information including user ID, name, and email (null if registration failed).
+        /// - Message (string): A message providing details about the registration outcome.
+        /// - Data (UserResponseDto): User information including user ID, name, and email (null if registration failed).
         /// </returns>
-        Task<(bool success, int StatusCode, string message, UserResponseDto userResponseDto)> RegisterUserAsync(RegisterDto registerDto);
+        Task<ServiceResponse<UserResponseDto>> RegisterUserAsync(RegisterDto registerDto);
 
         /// <summary>
-        /// Performs user login asynchronously.
+        /// Asynchronously performs user login with the provided email and password.
         /// </summary>
         /// <param name="email">The email address of the user attempting to log in.</param>
         /// <param name="password">The user's password for authentication.</param>
         /// <returns>
-        /// A tuple containing the login status and a message indicating the result.
+        /// A structured response containing the login status, HTTP status code, and a message indicating the result.
         /// - Succeeded (bool): True if the login is successful; otherwise, false.
+        /// - StatusCode (int): The HTTP status code indicating the outcome of the login attempt.
         /// - Message (string): A message providing details about the login outcome.
+        /// - Data (UserResponseDto): User information, which is null for successful logins (or if there was a problem updating user status).
         /// </returns>
-        Task<(bool Succeeded, int StatusCode, string Message)> LoginAsync(string email, string password);
+        Task<ServiceResponse<object>> LoginAsync(string email, string password);
 
         /// <summary>
         /// Retrieves a user asynchronously by their email address.
@@ -43,6 +45,14 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// or null if no user matches the provided email address.
         /// </returns>
         Task<ChatApplicationUser> GetUserByEmailAsync(string email);
+
+
+        /// <summary>
+        /// Asynchronously retrieves a user by their unique ID.
+        /// </summary>
+        /// <param name="userId">The ID of the user to retrieve.</param>
+        /// <returns>The <see cref="ChatApplicationUser"/> with the specified user ID, or null if not found.</returns>
+        Task<ChatApplicationUser> GetUserByIdAsync(string userId);
 
         /// <summary>
         /// Generates a JWT (JSON Web Token) for the provided user.
@@ -101,7 +111,6 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// </summary>
         /// <param name="userId">The unique identifier of the user.</param>
         /// <returns>True if the user is online (active), false if the user is offline (inactive).</returns>
-
         Task<bool> GetUserStatusAsync(string userId);
 
 
@@ -111,9 +120,9 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <param name="loggedInUserId">The ID of the user whose status is being updated.</param>
         /// <param name="status">The new status of the user (true for active, false for inactive).</param>
         /// <returns>
-        /// A tuple containing a boolean indicating the success of the operation, the HTTP status code,
-        /// and a message describing the outcome of the user status update.
+        /// A structured response indicating the success of the operation, including a boolean value,
+        /// the HTTP status code, and a message describing the outcome of the user status update.
         /// </returns>
-        Task<(bool Success, int StatusCode, string Message)> UpdateUserStatusAsync(string loggedInUserId, bool status);
+        Task<ServiceResponse<object>> UpdateUserStatusAsync(string loggedInUserId, bool status);
     }
 }

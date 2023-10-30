@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MinimalChatApplication.API.Hubs;
+using MinimalChatApplication.Data.Services;
 using MinimalChatApplication.Domain.Dtos;
+using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
 using System.Security.Claims;
 
@@ -15,6 +17,7 @@ namespace MinimalChatApplication.API.Controllers
     public class MessageController : ControllerBase
     {
         private readonly IMessageService _messageService;
+        private readonly IUserService _userService;
         private readonly IHubContext<ChatHub> _chatHub;
         private readonly IMapper _mapper;
 
@@ -22,9 +25,13 @@ namespace MinimalChatApplication.API.Controllers
         /// Initializes a new instance of the MessageController class.
         /// </summary>
         /// <param name="messageService">The service responsible for message-related operations.</param>
-        public MessageController(IMessageService messageService, IHubContext<ChatHub> chatHub, IMapper mapper)
+        public MessageController(IMessageService messageService, 
+            IUserService userService,
+            IHubContext<ChatHub> chatHub, 
+            IMapper mapper)
         {
             _messageService = messageService;
+            _userService = userService;
             _chatHub = chatHub;
             _mapper = mapper;
         }
@@ -53,7 +60,7 @@ namespace MinimalChatApplication.API.Controllers
                     return BadRequest(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
-                        Message = "Message sending failed due to validation errors",
+                        Message = HttpStatusMessages.MessageValidationFailure,
                         Data = null
                     });
                 }
@@ -63,20 +70,21 @@ namespace MinimalChatApplication.API.Controllers
                     return Unauthorized(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status401Unauthorized,
-                        Message = "Unauthorized access",
+                        Message = HttpStatusMessages.UnauthorizedAccess,
                         Data = null
                     });
                 }
                 var message = await _messageService.SendMessageAsync(messageDto, senderId);
                 if (message?.Id != null)
                 {
-                    var (userChatResponseDto, isLoggedIn) = await _messageService.IncreaseMessageCountAsync(message.SenderId, message.ReceiverId);
+                    var userChatResponseDto = await _messageService.IncreaseMessageCountAsync(message.SenderId, message.ReceiverId);
 
+                    var user = await _userService.GetUserByIdAsync(message.ReceiverId);
 
                     // Broadcasts a new message to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveMessage", message);
 
-                    if (isLoggedIn)
+                    if (user.IsActive)
                     {
                         // Broadcasts message count and chat status to all connected clients using SignalR.
                         await _chatHub.Clients.All.SendAsync("UpdateMessageCount", userChatResponseDto.MessageCount, userChatResponseDto.IsRead, userChatResponseDto.UserId);
@@ -84,7 +92,7 @@ namespace MinimalChatApplication.API.Controllers
                     return Ok(new ApiResponse<MessageResponseDto>
                     {
                         StatusCode = StatusCodes.Status200OK,
-                        Message = "Message sent successfully",
+                        Message = HttpStatusMessages.MessageSentSuccessfully,
                         Data = message
                     });
                 }
@@ -93,7 +101,7 @@ namespace MinimalChatApplication.API.Controllers
                     return BadRequest(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
-                        Message = "Message sending failed",
+                        Message = HttpStatusMessages.MessageSendingFailure,
                         Data = null
                     });
                 }
@@ -103,7 +111,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
                     Data = null
                 });
             }
@@ -133,7 +141,7 @@ namespace MinimalChatApplication.API.Controllers
                     return Unauthorized(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status401Unauthorized,
-                        Message = "Unauthorized access",
+                        Message = HttpStatusMessages.UnauthorizedAccess,
                         Data = null
                     });
                 }
@@ -141,14 +149,14 @@ namespace MinimalChatApplication.API.Controllers
                 // Update the message content
                 var updateResult = await _messageService.EditMessageAsync(messageId, userId, editMessageDto.Content);
 
-                if (updateResult.success)
+                if (updateResult.Succeeded)
                 {
                     // Broadcasts an edited message to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveEditedMessage", messageId, editMessageDto.Content);
                     return Ok(new ApiResponse<object>
                     {
                         StatusCode = updateResult.StatusCode,
-                        Message = updateResult.message,
+                        Message = updateResult.Message,
                         Data = null
                     });
                 }
@@ -157,7 +165,7 @@ namespace MinimalChatApplication.API.Controllers
                     return StatusCode(updateResult.StatusCode, new ApiResponse<object>
                     {
                         StatusCode = updateResult.StatusCode,
-                        Message = updateResult.message,
+                        Message = updateResult.Message,
                         Data = null
                     });
                 }
@@ -167,7 +175,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
                     Data = null
                 });
             }
@@ -195,7 +203,7 @@ namespace MinimalChatApplication.API.Controllers
                     return Unauthorized(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status401Unauthorized,
-                        Message = "Unauthorized access",
+                        Message = HttpStatusMessages.UnauthorizedAccess,
                         Data = null
                     });
                 }
@@ -203,15 +211,16 @@ namespace MinimalChatApplication.API.Controllers
                 // Delete the message
                 var result = await _messageService.DeleteMessageAsync(messageId, userId);
 
-                if (result.success)
+                if (result.Succeeded)
                 {
-                    var (userChatResponseDto, isLoggedIn) = await _messageService.DecreaseMessageCountAsync(result.deletedMessage.SenderId, result.deletedMessage.ReceiverId);
+                    var userChatResponseDto = await _messageService.DecreaseMessageCountAsync(result.Data.SenderId, result.Data.ReceiverId);
 
+                    var user = await _userService.GetUserByIdAsync(result.Data.ReceiverId);
 
                     // Broadcasts a deleted message notification to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("ReceiveDeletedMessage", messageId);
 
-                    if (isLoggedIn)
+                    if (user.IsActive)
                     {
                         // Broadcasts message count and chat status to all connected clients using SignalR.
                         await _chatHub.Clients.All.SendAsync("UpdateMessageCount", userChatResponseDto.MessageCount, userChatResponseDto.IsRead, userChatResponseDto.UserId);
@@ -220,7 +229,7 @@ namespace MinimalChatApplication.API.Controllers
                     return Ok(new ApiResponse<object>
                     {
                         StatusCode = result.StatusCode,
-                        Message = result.message,
+                        Message = result.Message,
                         Data = null
                     });
                 }
@@ -228,7 +237,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(result.StatusCode, new ApiResponse<object>
                 {
                     StatusCode = result.StatusCode,
-                    Message = result.message,
+                    Message = result.Message,
                     Data = null
                 });
             }
@@ -237,7 +246,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Message = $"{HttpStatusMessages.InternalServerError}  {ex.Message}",
                     Data = null
                 });
             }
@@ -269,7 +278,7 @@ namespace MinimalChatApplication.API.Controllers
                     return BadRequest(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
-                        Message = "Invalid request parameters",
+                        Message = HttpStatusMessages.InvalidRequestParameter,
                         Data = null
                     });
                 }
@@ -279,7 +288,7 @@ namespace MinimalChatApplication.API.Controllers
                     return Unauthorized(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status401Unauthorized,
-                        Message = "Unauthorized access",
+                        Message = HttpStatusMessages.UnauthorizedAccess,
                         Data = null
                     });
                 }
@@ -289,24 +298,25 @@ namespace MinimalChatApplication.API.Controllers
                 }
 
                 // Call the service method to retrieve conversation history
-                var (conversationHistory, userStatus) = await _messageService.GetConversationHistoryAsync(
+                var conversationHistory = await _messageService.GetConversationHistoryAsync(
                        loggedInUserId, userId.ToString(), before, count, sort);
 
                 if (conversationHistory != null || conversationHistory.Any())
                 {
+                    var userLoginStatus = await _userService.GetUserStatusAsync(userId.ToString());
                     return Ok(new
                     {
                         StatusCode = StatusCodes.Status200OK,
-                        Message = "Conversation history retrieved successfully",
+                        Message = HttpStatusMessages.ConversationRetrieved,
                         Data = conversationHistory,
-                        IsActive = userStatus
+                        IsActive = userLoginStatus
                     });
 
                 }
                 return NotFound(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status404NotFound,
-                    Message = "Conversation not found",
+                    Message = HttpStatusMessages.ConversationNotFound,
                     Data = null
                 });
 
@@ -317,7 +327,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"An error occurred while processing your request. {ex.Message}",
+                    Message = $"{HttpStatusMessages.InternalServerError}  {ex.Message}",
                     Data = null
                 });
             }
@@ -348,13 +358,13 @@ namespace MinimalChatApplication.API.Controllers
                 return Unauthorized(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status401Unauthorized,
-                    Message = "Unauthorized access",
+                    Message = HttpStatusMessages.UnauthorizedAccess,
                     Data = null
                 });
             }
 
             var result = await _messageService.UpdateChatStatusAsync(userId, currentUserId, previousUserId);
-            if (result.Success)
+            if (result.Succeeded)
             {
                 // Broadcasts message count and chat status to all connected clients using SignalR.
                 await _chatHub.Clients.All.SendAsync("UpdateMessageCount", 0, true, currentUserId);
