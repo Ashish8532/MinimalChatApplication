@@ -16,7 +16,10 @@ namespace MinimalChatApplication.Domain.Models
         public DateTime? RefreshTokenExpiryTime { get; set; }
 
         public bool IsActive { get; set; } = false;
-        
+
+        // To Add Status Message for the particular user.
+        public string StatusMessage { get; set; } = "";
+
 
         // Add a navigation property for messages sent by this user
         public ICollection<Message> SentMessages { get; set; }
