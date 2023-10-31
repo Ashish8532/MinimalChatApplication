@@ -584,7 +584,10 @@ namespace MinimalChatApplication.API.Controllers
 
                 if (result != null)
                 {
-                    return Ok(new ApiResponse<object>
+                    // Broadcast the status message update to connected clients
+                    await _chatHub.Clients.All.SendAsync("ReceiveStatusMessageUpdate", userId, result.StatusMessage);
+
+                    return Ok(new ApiResponse<UpdateProfileDto>
                     {
                         StatusCode = StatusCodes.Status200OK,
                         Message = HttpStatusMessages.ProfileUpdatedSuccessfullly,
