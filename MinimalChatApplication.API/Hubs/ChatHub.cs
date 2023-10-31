@@ -62,5 +62,16 @@ namespace MinimalChatApplication.API.Hubs
         {
             await Clients.All.SendAsync("UpdateMessageCount", messageCount, isRead, userId);
         }
+
+
+        /// <summary>
+        /// Broadcasts a status message update to all clients.
+        /// </summary>
+        /// <param name="userId">The ID of the user whose status message is updated.</param>
+        /// <param name="newStatusMessage">The new status message.</param>
+        public async Task StatusMessageUpdate(string userId, string newStatusMessage)
+        {
+            await Clients.All.SendAsync("ReceiveStatusMessageUpdate", userId, newStatusMessage);
+        }
     }
 }

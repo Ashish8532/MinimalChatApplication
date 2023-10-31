@@ -58,7 +58,7 @@
         public const string LogRetrievedSuccessfully = "Log list received successfully";
 
         //Retrieve Profile Details
-        public const string ProfileDetailsRetrieved = "Log list received successfully";
+        public const string ProfileDetailsRetrieved = "Profile details retrieved successfully";
         public const string ProfileNotFound = "User or profile not found";
 
         // Update Profile 
