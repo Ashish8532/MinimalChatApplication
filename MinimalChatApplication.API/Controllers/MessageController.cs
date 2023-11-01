@@ -51,7 +51,7 @@ namespace MinimalChatApplication.API.Controllers
         /// - 500 Internal Server Error if an error occurs during processing.
         /// </returns>
         [HttpPost]
-        public async Task<IActionResult> PostMessageAsync([FromBody] MessageDto messageDto)
+        public async Task<IActionResult> SendMessageAsync([FromBody] MessageDto messageDto)
         {
             try
             {
@@ -131,7 +131,7 @@ namespace MinimalChatApplication.API.Controllers
         /// - 500 Internal Server Error if an error occurs during processing.
         /// </returns>
         [HttpPut("{messageId}")]
-        public async Task<IActionResult> PutMessageAsync([FromRoute] int messageId, [FromBody] EditMessageDto editMessageDto)
+        public async Task<IActionResult> EditMessageAsync([FromRoute] int messageId, [FromBody] EditMessageDto editMessageDto)
         {
             try
             {
@@ -267,13 +267,12 @@ namespace MinimalChatApplication.API.Controllers
         /// An IActionResult containing a response with conversation history or an error message.
         /// </returns>
         [HttpGet]
-        public async Task<IActionResult> RetrieveConversationHistoryAsync([FromQuery] Guid userId, [FromQuery] DateTime? before = null,
-            [FromQuery] int count = 20, [FromQuery] string sort = "asc")
+        public async Task<IActionResult> RetrieveConversationHistoryAsync([FromQuery] ConversationDto conversationDto)
         {
             try
             {
                 // Validate parameters
-                if (userId == Guid.Empty || count <= 0)
+                if (conversationDto.UserId == string.Empty || conversationDto.Count <= 0)
                 {
                     return BadRequest(new ApiResponse<object>
                     {
@@ -292,19 +291,19 @@ namespace MinimalChatApplication.API.Controllers
                         Data = null
                     });
                 }
-                if (!before.HasValue)
+                if (conversationDto.Before == null)
                 {
-                    before = DateTime.Now;
+                    conversationDto.Before = DateTime.Now;
                 }
 
                 // Call the service method to retrieve conversation history
                 var conversationHistory = await _messageService.GetConversationHistoryAsync(
-                       loggedInUserId, userId.ToString(), before, count, sort);
+                       loggedInUserId, conversationDto.UserId, conversationDto.Before, conversationDto.Count, conversationDto.Sort);
 
                 if (conversationHistory != null || conversationHistory.Any())
                 {
-                    var userLoginStatus = await _userService.GetUserStatusAsync(userId.ToString());
-                    return Ok(new
+                    var userLoginStatus = await _userService.GetUserStatusAsync(conversationDto.UserId);
+                    return Ok(new ApiResponse<IEnumerable<MessageResponseDto>>
                     {
                         StatusCode = StatusCodes.Status200OK,
                         Message = HttpStatusMessages.ConversationRetrieved,

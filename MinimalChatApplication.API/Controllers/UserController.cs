@@ -62,7 +62,7 @@ namespace MinimalChatApplication.API.Controllers
 
                 if (result.Succeeded)
                 {
-                    return StatusCode(result.StatusCode, new ApiResponse<object>
+                    return Ok(new ApiResponse<UserResponseDto>
                     {
                         StatusCode = result.StatusCode,
                         Message = result.Message,
@@ -130,13 +130,13 @@ namespace MinimalChatApplication.API.Controllers
                     // Broadcasts status to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("UpdateStatus", true, user.Id);
 
-                    return Ok(new
+                    return Ok(new TokenResponseDto<UserResponseDto>
                     {
-                        message = loginResult.Message,
-                        accessToken = jwtToken,
-                        refreshToken,
-                        expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
-                        profile = _mapper.Map<UserResponseDto>(user)
+                        Message = loginResult.Message,
+                        AccessToken = jwtToken,
+                        RefreshToken = refreshToken,
+                        Expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                        Profile = _mapper.Map<UserResponseDto>(user)
                 });
                 }
                 else
@@ -223,13 +223,13 @@ namespace MinimalChatApplication.API.Controllers
                         // Broadcasts status to all connected clients using SignalR.
                         await _chatHub.Clients.All.SendAsync("UpdateStatus", true, user.Id);
 
-                        return Ok(new
+                        return Ok(new TokenResponseDto<UserResponseDto>
                         {
-                            message = HttpStatusMessages.LoginSuccessful,
-                            accessToken = jwtToken,
-                            refreshToken,
-                            expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
-                            profile = _mapper.Map<UserResponseDto>(user)
+                            Message = HttpStatusMessages.LoginSuccessful,
+                            AccessToken = jwtToken,
+                            RefreshToken = refreshToken,
+                            Expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                            Profile = _mapper.Map<UserResponseDto>(user)
                         });
                     }
                     else
@@ -257,13 +257,13 @@ namespace MinimalChatApplication.API.Controllers
                     // Broadcasts status to all connected clients using SignalR.
                     await _chatHub.Clients.All.SendAsync("UpdateStatus", true, user.Id);
 
-                    return Ok(new
+                    return Ok(new TokenResponseDto<UserResponseDto>
                     {
-                        message = HttpStatusMessages.LoginSuccessful,
-                        accessToken = jwtToken,
-                        refreshToken,
-                        expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
-                        profile = _mapper.Map<UserResponseDto>(user)
+                        Message = HttpStatusMessages.LoginSuccessful,
+                        AccessToken = jwtToken,
+                        RefreshToken = refreshToken,
+                        Expiration = DateTime.Now.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                        Profile = _mapper.Map<UserResponseDto>(user)
                     });
                 }
             }
