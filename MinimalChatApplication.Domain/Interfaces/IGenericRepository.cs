@@ -39,26 +39,29 @@ namespace MinimalChatApplication.Domain.Interfaces
         bool Update(T entity);
 
 
+
         /// <summary>
-        /// Asynchronously retrieves the first entity from the repository that matches a specified condition.
+        /// Asynchronously retrieves the first entity from the repository that matches a specified condition and includes related entities.
         /// </summary>
         /// <param name="filter">A filter expression specifying the condition for entity selection.</param>
+        /// <param name="includes">Optional navigation properties to be included with the entity.</param>
         /// <returns>
         /// A task that represents the asynchronous operation. The task result contains the first entity
         /// that satisfies the provided condition, or null if no matching entity is found.
         /// </returns>
-        Task<T> GetFirstOrDefaultAsync(Expression<Func<T, bool>> filter);
+        Task<T> GetFirstOrDefaultAsync(Expression<Func<T, bool>> filter, params Expression<Func<T, object>>[] includes);
 
 
         /// <summary>
-        /// Asynchronously retrieves a collection of entities from the repository that match a specified condition.
+        /// Asynchronously retrieves a collection of entities from the repository that match a specified condition and includes related entities.
         /// </summary>
         /// <param name="filter">A filter expression specifying the condition for entity selection.</param>
+        /// <param name="includes">Optional navigation properties to be included with the entities.</param>
         /// <returns>
         /// A task that represents the asynchronous operation. The task result contains a collection of entities
         /// that satisfy the provided condition.
         /// </returns>
-        Task<IEnumerable<T>> GetByConditionAsync(Expression<Func<T, bool>> filter);
+        Task<IEnumerable<T>> GetByConditionAsync(Expression<Func<T, bool>> filter, params Expression<Func<T, object>>[] includes);
 
 
         /// <summary>

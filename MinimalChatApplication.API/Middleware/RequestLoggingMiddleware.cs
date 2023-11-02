@@ -41,6 +41,13 @@ namespace MinimalChatApplication.API.Middleware
             var injectedRequestStream = new MemoryStream();
             try
             {
+                if (httpContext.Request.HasFormContentType && httpContext.Request.Form.Files.Any())
+                {
+                    // If the request contains file uploads, skip logging and let the request pass through
+                    await _next(httpContext);
+                    return;
+                }
+
                 string requestBody = null;
 
                 using (var bodyReader = new StreamReader(httpContext.Request.Body, Encoding.UTF8, true, 1024, true))
