@@ -235,6 +235,22 @@ namespace MinimalChatApplication.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("MinimalChatApplication.Domain.Models.GifData", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("GifName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Gifs");
+                });
+
             modelBuilder.Entity("MinimalChatApplication.Domain.Models.Log", b =>
                 {
                     b.Property<int>("Id")
@@ -271,8 +287,8 @@ namespace MinimalChatApplication.Data.Migrations
                     b.Property<string>("Content")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("GifUrl")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("GifId")
+                        .HasColumnType("int");
 
                     b.Property<string>("ReceiverId")
                         .HasColumnType("nvarchar(450)");
@@ -284,6 +300,8 @@ namespace MinimalChatApplication.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GifId");
 
                     b.HasIndex("ReceiverId");
 
@@ -376,6 +394,10 @@ namespace MinimalChatApplication.Data.Migrations
 
             modelBuilder.Entity("MinimalChatApplication.Domain.Models.Message", b =>
                 {
+                    b.HasOne("MinimalChatApplication.Domain.Models.GifData", "GifData")
+                        .WithMany()
+                        .HasForeignKey("GifId");
+
                     b.HasOne("MinimalChatApplication.Domain.Models.ChatApplicationUser", "Receiver")
                         .WithMany("ReceivedMessages")
                         .HasForeignKey("ReceiverId")
@@ -385,6 +407,8 @@ namespace MinimalChatApplication.Data.Migrations
                         .WithMany("SentMessages")
                         .HasForeignKey("SenderId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("GifData");
 
                     b.Navigation("Receiver");
 

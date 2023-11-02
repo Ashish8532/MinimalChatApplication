@@ -75,30 +75,46 @@ namespace MinimalChatApplication.Data.Repository
 
 
         /// <summary>
-        /// Asynchronously retrieves the first entity from the repository that matches a specified condition.
+        /// Asynchronously retrieves the first entity from the repository that matches a specified condition and includes related entities.
         /// </summary>
         /// <param name="filter">A filter expression specifying the condition for entity selection.</param>
+        /// <param name="includes">Optional navigation properties to be included with the entity.</param>
         /// <returns>
         /// A task that represents the asynchronous operation. The task result contains the first entity
         /// that satisfies the provided condition, or null if no matching entity is found.
         /// </returns>
-        public async Task<T> GetFirstOrDefaultAsync(Expression<Func<T, bool>> filter)
+        public async Task<T> GetFirstOrDefaultAsync(Expression<Func<T, bool>> filter, params Expression<Func<T, object>>[] includes)
         {
-            return await dbSet.FirstOrDefaultAsync(filter);
+            IQueryable<T> query = dbSet;
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+            return await query.FirstOrDefaultAsync(filter);
         }
 
 
+
         /// <summary>
-        /// Asynchronously retrieves a collection of entities from the repository that match a specified condition.
+        /// Asynchronously retrieves a collection of entities from the repository that match a specified condition and includes related entities.
         /// </summary>
         /// <param name="filter">A filter expression specifying the condition for entity selection.</param>
+        /// <param name="includes">Optional navigation properties to be included with the entities.</param>
         /// <returns>
         /// A task that represents the asynchronous operation. The task result contains a collection of entities
         /// that satisfy the provided condition.
         /// </returns>
-        public async Task<IEnumerable<T>> GetByConditionAsync(Expression<Func<T, bool>> filter)
+        public async Task<IEnumerable<T>> GetByConditionAsync(Expression<Func<T, bool>> filter, params Expression<Func<T, object>>[] includes)
         {
-            return await dbSet.Where(filter).ToListAsync();
+            var query = dbSet.Where(filter);
+
+            // Apply includes
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+
+            return await query.ToListAsync();
         }
 
 
@@ -119,6 +135,7 @@ namespace MinimalChatApplication.Data.Repository
             }
             return await query.ToListAsync();
         }
+
 
 
         /// <summary>

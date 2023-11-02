@@ -19,6 +19,7 @@ namespace MinimalChatApplication.Data.Context
         public DbSet<Message> Messages { get; set; }
         public DbSet<Log> Logs { get; set; }
         public DbSet<UnreadMessageCount> UnreadMessageCounts { get; set; }
+        public DbSet<GifData> Gifs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

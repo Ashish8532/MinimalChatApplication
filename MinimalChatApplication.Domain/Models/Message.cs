@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,10 +20,12 @@ namespace MinimalChatApplication.Domain.Models
         public ChatApplicationUser Receiver { get; set; }
 
         // Content field which stores text & emoji
-        public string? Content { get; set; } 
+        public string? Content { get; set; }
 
-        // Gif image url gets stored in GifData field
-        public string? GifUrl { get; set; } 
+        // Gif image foreign key
+        public int? GifId { get; set; } 
+        [ForeignKey("GifId")] 
+        public GifData GifData { get; set; }
 
         public DateTime Timestamp { get; set; }
 

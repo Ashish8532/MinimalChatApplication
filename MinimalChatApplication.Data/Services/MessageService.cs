@@ -6,6 +6,7 @@ using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 using System.Linq.Expressions;
+using System.Web.Mvc;
 
 namespace MinimalChatApplication.Data.Services
 {
@@ -13,18 +14,21 @@ namespace MinimalChatApplication.Data.Services
     {
         private readonly IGenericRepository<Message> _messageRepository;
         private readonly IGenericRepository<UnreadMessageCount> _unreadMessageRepository;
+        private readonly IGenericRepository<GifData> _gifRepository;
         private readonly IUserService _userService;
         private readonly UserManager<ChatApplicationUser> _userManager;
         private readonly IMapper _mapper;
 
 
         public MessageService(IGenericRepository<Message> messageRepository,
+            IGenericRepository<GifData> gifRepository,
             IUserService userService,
             UserManager<ChatApplicationUser> userManager,
             IGenericRepository<UnreadMessageCount> unreadMessageRepository,
             IMapper mapper)
         {
             _messageRepository = messageRepository;
+            _gifRepository = gifRepository;
             _userService = userService;
             _userManager = userManager;
             _unreadMessageRepository = unreadMessageRepository;
@@ -34,12 +38,12 @@ namespace MinimalChatApplication.Data.Services
 
 
         /// <summary>
-        /// Sends a message asynchronously.
+        /// Sends a message asynchronously, adding it to the database.
         /// </summary>
-        /// <param name="messageDto">The message data.</param>
+        /// <param name="messageDto">The message data to be sent.</param>
         /// <param name="senderId">The ID of the sender.</param>
         /// <returns>
-        /// The unique identifier of the sent message if successful; otherwise, null.
+        /// A message response containing the unique identifier of the sent message if successful; otherwise, null.
         /// </returns>
         public async Task<MessageResponseDto> SendMessageAsync(MessageDto messageDto, string senderId)
         {
@@ -51,13 +55,27 @@ namespace MinimalChatApplication.Data.Services
                     SenderId = senderId,
                     ReceiverId = messageDto.ReceiverId,
                     Timestamp = DateTime.Now,
-                    GifUrl = messageDto.GifUrl
+                    GifId = messageDto.GifId,
                 };
 
                 var data = await _messageRepository.AddAsync(message);
                 await _messageRepository.SaveChangesAsync();
-                var messageResponseDto = _mapper.Map<MessageResponseDto>(data);
-                return messageResponseDto;
+
+                if (data.GifId != null)
+                {
+                    var messageWithGif = await _messageRepository.GetFirstOrDefaultAsync(
+                        m => m.Id == data.Id,
+                        m => m.GifData
+                    );
+
+                    var messageResponseDto = _mapper.Map<MessageResponseDto>(messageWithGif);
+                    return messageResponseDto;
+                }
+                else
+                {
+                    var messageResponseDto = _mapper.Map<MessageResponseDto>(data);
+                    return messageResponseDto;
+                }
             }
             return null;
         }
@@ -188,7 +206,7 @@ namespace MinimalChatApplication.Data.Services
                       m => (m.SenderId == loggedInUserId && m.ReceiverId == receiverId) ||
                 (m.SenderId == receiverId && m.ReceiverId == loggedInUserId);
 
-            var conversationHistory = await _messageRepository.GetByConditionAsync(filter);
+            var conversationHistory = await _messageRepository.GetByConditionAsync(filter, m => m.GifData);
 
             if (before.HasValue)
             {

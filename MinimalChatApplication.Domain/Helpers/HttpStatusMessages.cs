@@ -71,5 +71,13 @@
         public const string UnauthorizedAccess = "Unauthorized access";
         public const string InvalidRequestParameter = "Invalid request parameters";
         public const string NoUsersFound = "No users found";
+
+        // Search Conversation 
+        public const string SearchSuccesssfully = "Conversation searched successfully";
+
+        // Gif 
+        public const string GifAdded = "GIF uploaded successfully";
+        public const string GifRetrieved = "GIF retrieved successfully";
+        public const string InvalidFile = "Invalid file";
     }
 }

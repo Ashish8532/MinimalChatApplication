@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinimalChatApplication.API", "MinimalChatApplication.API\MinimalChatApplication.API.csproj", "{D0245AB3-42B4-40CD-B05B-33D16C887912}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MinimalChatApplication.API", "MinimalChatApplication.API\MinimalChatApplication.API.csproj", "{D0245AB3-42B4-40CD-B05B-33D16C887912}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinimalChatApplication.Data", "MinimalChatApplication.Data\MinimalChatApplication.Data.csproj", "{7D06D082-9DDA-4CFA-AF06-A8BB551A86E8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MinimalChatApplication.Data", "MinimalChatApplication.Data\MinimalChatApplication.Data.csproj", "{7D06D082-9DDA-4CFA-AF06-A8BB551A86E8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinimalChatApplication.Domain", "MinimalChatApplication.Domain\MinimalChatApplication.Domain.csproj", "{558F59E0-1925-4279-AD91-9C4BA384CA5E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MinimalChatApplication.Domain", "MinimalChatApplication.Domain\MinimalChatApplication.Domain.csproj", "{558F59E0-1925-4279-AD91-9C4BA384CA5E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
