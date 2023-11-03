@@ -7,6 +7,7 @@ using MinimalChatApplication.Data.Services;
 using MinimalChatApplication.Domain.Dtos;
 using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
+using MinimalChatApplication.Domain.Models;
 using System.Security.Claims;
 
 namespace MinimalChatApplication.API.Controllers
@@ -64,8 +65,8 @@ namespace MinimalChatApplication.API.Controllers
                         Data = null
                     });
                 }
-                var senderId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (senderId == null)
+                var loggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (loggedInUserId == null)
                 {
                     return Unauthorized(new ApiResponse<object>
                     {
@@ -74,7 +75,7 @@ namespace MinimalChatApplication.API.Controllers
                         Data = null
                     });
                 }
-                var message = await _messageService.SendMessageAsync(messageDto, senderId);
+                var message = await _messageService.SendMessageAsync(messageDto, loggedInUserId);
                 if (message?.Id != null)
                 {
                     var userChatResponseDto = await _messageService.IncreaseMessageCountAsync(message.SenderId, message.ReceiverId);
@@ -86,8 +87,10 @@ namespace MinimalChatApplication.API.Controllers
 
                     if (user.IsActive)
                     {
+                        var messageCountDto = _mapper.Map<MessageCountDto>(userChatResponseDto);
+                        messageCountDto.ReceiverId = user.Id;
                         // Broadcasts message count and chat status to all connected clients using SignalR.
-                        await _chatHub.Clients.All.SendAsync("UpdateMessageCount", userChatResponseDto.MessageCount, userChatResponseDto.IsRead, userChatResponseDto.UserId);
+                        await _chatHub.Clients.All.SendAsync("UpdateMessageCount", messageCountDto);
                     }
                     return Ok(new ApiResponse<MessageResponseDto>
                     {
@@ -222,8 +225,10 @@ namespace MinimalChatApplication.API.Controllers
 
                     if (user.IsActive)
                     {
+                        var messageCountDto = _mapper.Map<MessageCountDto>(userChatResponseDto);
+                        messageCountDto.ReceiverId = user.Id;
                         // Broadcasts message count and chat status to all connected clients using SignalR.
-                        await _chatHub.Clients.All.SendAsync("UpdateMessageCount", userChatResponseDto.MessageCount, userChatResponseDto.IsRead, userChatResponseDto.UserId);
+                        await _chatHub.Clients.All.SendAsync("UpdateMessageCount", messageCountDto);
                     }
 
                     return Ok(new ApiResponse<object>
@@ -365,8 +370,16 @@ namespace MinimalChatApplication.API.Controllers
             var result = await _messageService.UpdateChatStatusAsync(userId, currentUserId, previousUserId);
             if (result.Succeeded)
             {
+                var messageCountDto = new MessageCountDto
+                {
+                    MessageCount = 0,
+                    IsRead = true,
+                    UserId = currentUserId,
+                    ReceiverId = userId
+                };
+                
                 // Broadcasts message count and chat status to all connected clients using SignalR.
-                await _chatHub.Clients.All.SendAsync("UpdateMessageCount", 0, true, currentUserId);
+                await _chatHub.Clients.All.SendAsync("UpdateMessageCount", messageCountDto);
 
                 return Ok(new ApiResponse<object>
                 {

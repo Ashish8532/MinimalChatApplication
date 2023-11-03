@@ -54,13 +54,11 @@ namespace MinimalChatApplication.API.Hubs
         /// <summary>
         /// Updates the message count and read status for a user and broadcasts the updated information to all clients.
         /// </summary>
-        /// <param name="messageCount">The new message count for the user.</param>
-        /// <param name="isRead">A boolean indicating whether the messages are read or not.</param>
-        /// <param name="userId">The ID of the user for whom the message count and status are updated.</param>
+        /// <param name="messageCountDto">The data object containing the new message count, read status, and user ID.</param>
         /// <returns>A Task representing the asynchronous operation.</returns>
-        public async Task UpdateMessageCountAndStatusAsync(int messageCount, bool isRead, string userId)
+        public async Task UpdateMessageCountAndStatusAsync(MessageCountDto messageCountDto)
         {
-            await Clients.All.SendAsync("UpdateMessageCount", messageCount, isRead, userId);
+            await Clients.All.SendAsync("UpdateMessageCount", messageCountDto);
         }
 
 
