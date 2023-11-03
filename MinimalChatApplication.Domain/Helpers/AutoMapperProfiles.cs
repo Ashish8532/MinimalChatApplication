@@ -38,6 +38,9 @@ namespace MinimalChatApplication.Domain.Helpers
             // Mapping between Message and MessageResponseDto in both directions.
             CreateMap<Message, MessageResponseDto>()
                 .ForMember(dest => dest.GifUrl, opt => opt.MapFrom(src => "https://localhost:44394/Upload/" + src.GifData.GifName));
+
+
+            CreateMap<UserChatResponseDto, MessageCountDto>();
         }
     }
 }

@@ -119,13 +119,12 @@ builder.Services.AddAuthentication(options =>
 });
 
 // Configure Cross-Origin Resource Sharing (CORS) policy.
-builder.Services.AddCors(options =>
+builder.Services.AddCors(option =>
 {
-    options.AddPolicy("MyPolicy", builder => builder
-        .WithOrigins("http://localhost:4200")
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials());
+    option.AddPolicy("MyPolicy", builder =>
+    {
+        builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+    });
 });
 
 // Add SignalR for real-time communication.
