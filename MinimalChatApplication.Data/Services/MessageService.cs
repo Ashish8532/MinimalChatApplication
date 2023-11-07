@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using MinimalChatApplication.Domain.Constants;
 using MinimalChatApplication.Domain.Dtos;
-using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 using System.Linq.Expressions;
@@ -36,6 +36,7 @@ namespace MinimalChatApplication.Data.Services
         }
 
 
+        #region Message Operations
 
         /// <summary>
         /// Sends a message asynchronously, adding it to the database.
@@ -92,18 +93,19 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         public async Task<ServiceResponse<object>> EditMessageAsync(int messageId, string userId, string newContent)
         {
-            var response = new ServiceResponse<object>();
-
             var message = await _messageRepository.GetFirstOrDefaultAsync(m => m.Id == messageId);
 
             if (message != null)
             {
                 if (message.SenderId != userId)
                 {
-                    response.Succeeded = false;
-                    response.StatusCode = StatusCodes.Status401Unauthorized;
-                    response.Message = HttpStatusMessages.UnauthorizedAccess;
-                    response.Data = null;
+                    return new ServiceResponse<object>
+                    {
+                        Succeeded = false,
+                        StatusCode = StatusCodes.Status401Unauthorized,
+                        Message = StatusMessages.UnauthorizedAccess,
+                        Data = null
+                    };
                 }
                 if (newContent != null)
                 {
@@ -111,27 +113,35 @@ namespace MinimalChatApplication.Data.Services
                     _messageRepository.Update(message);
                     await _messageRepository.SaveChangesAsync();
 
-                    response.Succeeded = true;
-                    response.StatusCode = StatusCodes.Status200OK;
-                    response.Message = HttpStatusMessages.MessageEditedSuccessfully;
-                    response.Data = null;
+                    return new ServiceResponse<object>
+                    {
+                        Succeeded = true,
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = StatusMessages.MessageEditedSuccessfully,
+                        Data = null
+                    };
                 }
                 else
                 {
-                    response.Succeeded = false;
-                    response.StatusCode = StatusCodes.Status400BadRequest;
-                    response.Message = HttpStatusMessages.MessageEditingValidationFailure;
-                    response.Data = null;
+                    return new ServiceResponse<object>
+                    {
+                        Succeeded = false,
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Message = StatusMessages.MessageEditingValidationFailure,
+                        Data = null
+                    };
                 }
             }
             else
             {
-                response.Succeeded = false;
-                response.StatusCode = StatusCodes.Status404NotFound;
-                response.Message = HttpStatusMessages.MessageNotFound;
-                response.Data = null;
+                return new ServiceResponse<object>
+                {
+                    Succeeded = false,
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Message = StatusMessages.MessageNotFound,
+                    Data = null
+                };
             }
-            return response;
         }
 
 
@@ -149,18 +159,19 @@ namespace MinimalChatApplication.Data.Services
         /// </returns>
         public async Task<ServiceResponse<MessageResponseDto>> DeleteMessageAsync(int messageId, string userId)
         {
-            var response = new ServiceResponse<MessageResponseDto>();
-
             var message = await _messageRepository.GetFirstOrDefaultAsync(m => m.Id == messageId);
 
             if (message != null)
             {
                 if (message.SenderId != userId)
                 {
-                    response.Succeeded = false;
-                    response.StatusCode = StatusCodes.Status401Unauthorized;
-                    response.Message = HttpStatusMessages.UnauthorizedAccess;
-                    response.Data = null;
+                    return new ServiceResponse<MessageResponseDto>
+                    {
+                        Succeeded = false,
+                        StatusCode = StatusCodes.Status401Unauthorized,
+                        Message = StatusMessages.UnauthorizedAccess,
+                        Data = null
+                    };
                 }
                 else
                 {
@@ -169,20 +180,25 @@ namespace MinimalChatApplication.Data.Services
                     _messageRepository.Remove(message);
                     await _messageRepository.SaveChangesAsync();
 
-                    response.Succeeded = true;
-                    response.StatusCode = StatusCodes.Status200OK;
-                    response.Message = HttpStatusMessages.MessageDeletedSuccessfully;
-                    response.Data = deletedMessageDto;
+                    return new ServiceResponse<MessageResponseDto>
+                    {
+                        Succeeded = true,
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = StatusMessages.MessageDeletedSuccessfully,
+                        Data = deletedMessageDto
+                    };
                 }
             }
             else
             {
-                response.Succeeded = false;
-                response.StatusCode = StatusCodes.Status404NotFound;
-                response.Message = HttpStatusMessages.MessageNotFound;
-                response.Data = null;
+                return new ServiceResponse<MessageResponseDto>
+                {
+                    Succeeded = false,
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Message = StatusMessages.MessageNotFound,
+                    Data = null
+                };
             }
-            return response;
         }
 
 
@@ -228,6 +244,8 @@ namespace MinimalChatApplication.Data.Services
 
             return messageResponseDtos;
         }
+
+        #endregion Message Operations
 
 
         /// <summary>
@@ -276,11 +294,13 @@ namespace MinimalChatApplication.Data.Services
                     }
 
                     await _unreadMessageRepository.SaveChangesAsync();
-                    response.Succeeded = true;
-                    response.StatusCode = StatusCodes.Status200OK;
-                    response.Message = HttpStatusMessages.ChatStatusUpdated;
-                    response.Data = null;
-                    return response;
+                    return new ServiceResponse<object>
+                    {
+                        Succeeded = true,
+                        StatusCode = StatusCodes.Status200OK,
+                        Message = StatusMessages.ChatStatusUpdated,
+                        Data = null
+                    };
                 }
 
                 await CreateSenderChatAsync(userId, currentUserId);
@@ -297,11 +317,13 @@ namespace MinimalChatApplication.Data.Services
                     }
                     else
                     {
-                        response.Succeeded = false;
-                        response.StatusCode = StatusCodes.Status404NotFound;
-                        response.Message = HttpStatusMessages.ChatNotExists;
-                        response.Data = null;
-                        return response;
+                        return new ServiceResponse<object>
+                        {
+                            Succeeded = false,
+                            StatusCode = StatusCodes.Status404NotFound,
+                            Message = StatusMessages.ChatNotExists,
+                            Data = null
+                        };
                     }
                 }
                 else
@@ -325,19 +347,24 @@ namespace MinimalChatApplication.Data.Services
                     }
                 }
                 await _unreadMessageRepository.SaveChangesAsync();
-                response.Succeeded = true;
-                response.StatusCode = StatusCodes.Status200OK;
-                response.Message = HttpStatusMessages.ChatStatusUpdated;
-                response.Data = null;
-                return response;
+                return new ServiceResponse<object>
+                {
+                    Succeeded = true,
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = StatusMessages.ChatStatusUpdated,
+                    Data = null
+                };
 
             }
             catch (Exception ex)
             {
-                response.Succeeded = false;
-                response.StatusCode = StatusCodes.Status500InternalServerError;
-                response.Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}";
-                return response;
+                return new ServiceResponse<object>
+                {
+                    Succeeded = false,
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = $"{StatusMessages.InternalServerError} {ex.Message}",
+                    Data = null
+                };
             }
         }
 

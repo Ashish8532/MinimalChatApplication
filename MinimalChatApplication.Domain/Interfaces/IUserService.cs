@@ -10,11 +10,11 @@ namespace MinimalChatApplication.Domain.Interfaces
         #region User Authentication Operations
 
         /// <summary>
-        /// Registers a new user asynchronously.
+        /// Asynchronously registers a new user and returns a structured response with the registration status, HTTP status code, a message indicating the result, and user information.
         /// </summary>
         /// <param name="registerDto">The registration data provided by the user.</param>
         /// <returns>
-        /// A structured response containing the registration status, HTTP status code, a message indicating the result, and user information.
+        /// A structured response containing the registration status, HTTP status code, a message providing details about the registration outcome, and user information.
         /// - Succeeded (bool): True if registration is successful; otherwise, false.
         /// - StatusCode (int): The HTTP status code associated with the registration outcome.
         /// - Message (string): A message providing details about the registration outcome.
@@ -25,16 +25,15 @@ namespace MinimalChatApplication.Domain.Interfaces
         /// <summary>
         /// Asynchronously performs user login with the provided email and password.
         /// </summary>
-        /// <param name="email">The email address of the user attempting to log in.</param>
-        /// <param name="password">The user's password for authentication.</param>
+        /// <param name="loginDto">A data transfer object containing user login information.</param>
         /// <returns>
         /// A structured response containing the login status, HTTP status code, and a message indicating the result.
         /// - Succeeded (bool): True if the login is successful; otherwise, false.
         /// - StatusCode (int): The HTTP status code indicating the outcome of the login attempt.
         /// - Message (string): A message providing details about the login outcome.
-        /// - Data (UserResponseDto): User information, which is null for successful logins (or if there was a problem updating user status).
+        /// - Data (object): Additional data, such as user information (null for successful logins).
         /// </returns>
-        Task<ServiceResponse<object>> LoginAsync(string email, string password);
+        Task<ServiceResponse<object>> LoginAsync(LoginDto loginDto);
 
         /// <summary>
         /// Retrieves a user asynchronously by their email address.
@@ -98,11 +97,14 @@ namespace MinimalChatApplication.Domain.Interfaces
         #endregion User Authentication Operations
 
 
-        ///<summary>
-        /// Asynchronously retrieves a list of users excluding the current user.
-        ///</summary>
-        ///<param name="currentUserId">The unique identifier of the current user.</param>
-        ///<returns>A collection of UserChatResponseDto representing users, excluding the current user.</returns>
+        /// <summary>
+        /// Asynchronously retrieves a list of users, excluding the current user, along with their unread message counts.
+        /// </summary>
+        /// <param name="currentUserId">The unique identifier of the current user.</param>
+        /// <returns>
+        /// A collection of UserChatResponseDto objects representing users (excluding the current user) with associated unread message counts.
+        /// Each UserChatResponseDto includes user details, unread message count, and read status.
+        /// </returns>
         Task<IEnumerable<UserChatResponseDto>> GetUsersExceptCurrentUserAsync(string currentUserId);
 
 
@@ -126,6 +128,14 @@ namespace MinimalChatApplication.Domain.Interfaces
         Task<ServiceResponse<object>> UpdateUserStatusAsync(string loggedInUserId, bool status);
 
 
+        /// <summary>
+        /// Asynchronously updates the user's profile information, specifically the status message, based on the provided data.
+        /// </summary>
+        /// <param name="updateProfileDto">A data transfer object containing the user's updated profile information.</param>
+        /// <returns>
+        /// If the user is found and the profile update is successful, returns an updated UpdateProfileDto object with the user's unique identifier and the new status message.
+        /// If the user is not found or the update fails, returns null to indicate an unsuccessful update.
+        /// </returns>
         Task<UpdateProfileDto> UpdateUserProfileAsync(UpdateProfileDto updateProfileDto);
     }
 }

@@ -1,6 +1,6 @@
-﻿namespace MinimalChatApplication.Domain.Helpers
+﻿namespace MinimalChatApplication.Domain.Constants
 {
-    public static class HttpStatusMessages
+    public static class StatusMessages
     {
 
         // Registration
