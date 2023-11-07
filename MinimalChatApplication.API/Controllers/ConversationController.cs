@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MinimalChatApplication.Domain.Constants;
 using MinimalChatApplication.Domain.Dtos;
-using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
 using System.Security.Claims;
 
@@ -40,7 +40,7 @@ namespace MinimalChatApplication.API.Controllers
                     return Unauthorized(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status401Unauthorized,
-                        Message = HttpStatusMessages.UnauthorizedAccess,
+                        Message = StatusMessages.UnauthorizedAccess,
                         Data = null
                     });
                 }
@@ -52,7 +52,7 @@ namespace MinimalChatApplication.API.Controllers
                     return Ok(new ApiResponse<IEnumerable<MessageResponseDto>>
                     {
                         StatusCode = StatusCodes.Status200OK,
-                        Message = HttpStatusMessages.SearchSuccesssfully,
+                        Message = StatusMessages.SearchSuccesssfully,
                         Data = searchResult
                     });
                 }
@@ -61,7 +61,7 @@ namespace MinimalChatApplication.API.Controllers
                     return BadRequest(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
-                        Message = HttpStatusMessages.InvalidRequestParameter,
+                        Message = StatusMessages.InvalidRequestParameter,
                         Data = null
                     });
                 }
@@ -71,7 +71,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
+                    Message = $"{StatusMessages.InternalServerError} {ex.Message}",
                     Data = null
                 });
             }

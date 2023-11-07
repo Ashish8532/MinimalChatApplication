@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MinimalChatApplication.Domain.Constants;
 using MinimalChatApplication.Domain.Dtos;
-using MinimalChatApplication.Domain.Helpers;
 using MinimalChatApplication.Domain.Interfaces;
 using MinimalChatApplication.Domain.Models;
 
@@ -55,7 +55,7 @@ namespace MinimalChatApplication.API.Controllers
                     return BadRequest(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status400BadRequest,
-                        Message = HttpStatusMessages.InvalidRequestParameter,
+                        Message = StatusMessages.InvalidRequestParameter,
                         Data = null
                     });
                 }
@@ -68,7 +68,7 @@ namespace MinimalChatApplication.API.Controllers
                     return NotFound(new ApiResponse<object>
                     {
                         StatusCode = StatusCodes.Status404NotFound,
-                        Message = HttpStatusMessages.LogNotFound,
+                        Message = StatusMessages.LogNotFound,
                         Data = null
                     });
                 }
@@ -76,7 +76,7 @@ namespace MinimalChatApplication.API.Controllers
                 return Ok(new ApiResponse<IEnumerable<Log>>
                 {
                     StatusCode = StatusCodes.Status200OK,
-                    Message = HttpStatusMessages.LogRetrievedSuccessfully,
+                    Message = StatusMessages.LogRetrievedSuccessfully,
                     Data = logs
                 });
             }
@@ -85,7 +85,7 @@ namespace MinimalChatApplication.API.Controllers
                 return Unauthorized(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status401Unauthorized,
-                    Message = HttpStatusMessages.UnauthorizedAccess,
+                    Message = StatusMessages.UnauthorizedAccess,
                     Data = null
                 });
             }
@@ -95,7 +95,7 @@ namespace MinimalChatApplication.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"{HttpStatusMessages.InternalServerError} {ex.Message}",
+                    Message = $"{StatusMessages.InternalServerError} {ex.Message}",
                     Data = null
                 });
             }
